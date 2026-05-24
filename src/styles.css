@@ -99,6 +99,11 @@ input {
   gap: 8px;
 }
 
+.sidebar-actions .primary-button,
+.sidebar-actions .icon-button {
+  height: 32px;
+}
+
 .drawing-list {
   flex: 1;
   overflow: auto;
@@ -155,7 +160,7 @@ input {
 .app-actions {
   position: fixed;
   right: max(16px, calc(env(safe-area-inset-right) + 16px));
-  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 56px);
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 48px);
   z-index: 20;
   display: flex;
 }
@@ -174,8 +179,11 @@ input {
 }
 
 .app-actions-toggle svg {
-  width: 0.95rem;
-  height: 0.95rem;
+  width: 1rem;
+  height: 1rem;
+  overflow: visible;
+  transform: translateY(0.5px) scale(1);
+  transform-origin: center;
 }
 
 .primary-button,
@@ -282,6 +290,6 @@ input {
 
   .app-actions {
     right: max(16px, calc(env(safe-area-inset-right) + 16px));
-    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 64px);
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 56px);
   }
 }
