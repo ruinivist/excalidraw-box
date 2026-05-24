@@ -34,6 +34,7 @@ input {
 .app-shell {
   height: 100%;
   color: var(--app-text-color, #18181b);
+  --app-sidebar-font-size: 0.875rem;
   --app-island-bg: #ffffff;
   --app-sidebar-bg: #ffffff;
   --app-sidebar-border: #e4e4e7;
@@ -87,7 +88,7 @@ input {
 
 .sidebar-header h1 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--app-sidebar-font-size);
   font-weight: 600;
   color: var(--app-text-color);
 }
@@ -125,6 +126,7 @@ input {
   color: inherit;
   padding: 8px;
   text-align: left;
+  font-size: var(--app-sidebar-font-size);
 }
 
 .drawing-title,
@@ -141,6 +143,7 @@ input {
   border-radius: 6px;
   background: var(--app-input-bg);
   color: var(--app-input-color);
+  font-size: var(--app-sidebar-font-size);
   padding: 6px 8px;
 }
 
@@ -200,6 +203,8 @@ input {
 .primary-button,
 .secondary-button {
   cursor: pointer;
+  font-size: var(--app-sidebar-font-size);
+  font-weight: 500;
   padding: 8px 12px;
 }
 
