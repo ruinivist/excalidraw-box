@@ -14,6 +14,27 @@ import { DEFAULT_TITLE, type DrawingMeta, type ScenePayload } from "./shared";
 
 type DrawingResponse = DrawingMeta & ScenePayload;
 
+const EXCALIDRAW_THEME_TOKEN_MAP = [
+  ["--island-bg-color", "--app-island-bg"],
+  ["--sidebar-bg-color", "--app-sidebar-bg"],
+  ["--sidebar-border-color", "--app-sidebar-border"],
+  ["--sidebar-shadow", "--app-sidebar-shadow"],
+  ["--color-surface-lowest", "--app-surface-lowest"],
+  ["--color-surface-low", "--app-surface-low"],
+  ["--color-surface-primary-container", "--app-selected-bg"],
+  ["--color-on-surface", "--app-text-color"],
+  ["--color-on-primary-container", "--app-selected-text-color"],
+  ["--color-disabled", "--app-disabled-color"],
+  ["--input-bg-color", "--app-input-bg"],
+  ["--input-border-color", "--app-input-border"],
+  ["--input-label-color", "--app-input-color"],
+  ["--default-border-color", "--app-button-border"],
+  ["--button-hover-bg", "--app-button-hover-bg"],
+  ["--button-active-bg", "--app-button-active-bg"],
+  ["--button-active-border", "--app-button-active-border"],
+  ["--overlay-bg-color", "--app-overlay-bg"],
+] as const;
+
 function pathToId(pathname = window.location.pathname): string | null {
   const match = pathname.match(/^\/d\/([^/]+)$/);
   return match?.[1] ?? null;
@@ -110,9 +131,11 @@ export function App() {
   const currentTitleRef = useRef(activeTitle);
   const latestSceneRef = useRef<ScenePayload | null>(null);
   const ignoreChangeRef = useRef(false);
+  const appShellRef = useRef<HTMLDivElement | null>(null);
   const timeoutRef = useRef<number | null>(null);
   const inFlightSaveRef = useRef<Promise<void> | null>(null);
   const loadVersionRef = useRef(0);
+  const themeSyncFrameRef = useRef<number | null>(null);
 
   const activeDrawing = useMemo(
     () => drawings.find((drawing) => drawing.id === activeId) ?? null,
@@ -352,6 +375,33 @@ export function App() {
     );
   }, []);
 
+  const syncThemeTokens = useCallback(() => {
+    const appShell = appShellRef.current;
+    const excalidrawRoot = appShell?.querySelector<HTMLElement>(".excalidraw");
+    if (!appShell || !excalidrawRoot) {
+      return;
+    }
+
+    const computedStyles = window.getComputedStyle(excalidrawRoot);
+    for (const [sourceToken, targetToken] of EXCALIDRAW_THEME_TOKEN_MAP) {
+      const value = computedStyles.getPropertyValue(sourceToken).trim();
+      if (value) {
+        appShell.style.setProperty(targetToken, value);
+      }
+    }
+  }, []);
+
+  const scheduleThemeTokenSync = useCallback(() => {
+    if (themeSyncFrameRef.current !== null) {
+      window.cancelAnimationFrame(themeSyncFrameRef.current);
+    }
+
+    themeSyncFrameRef.current = window.requestAnimationFrame(() => {
+      themeSyncFrameRef.current = null;
+      syncThemeTokens();
+    });
+  }, [syncThemeTokens]);
+
   useEffect(() => {
     const currentPathId = pathToId();
     if (currentPathId) {
@@ -378,8 +428,20 @@ export function App() {
       if (timeoutRef.current !== null) {
         clearTimeout(timeoutRef.current);
       }
+
+      if (themeSyncFrameRef.current !== null) {
+        window.cancelAnimationFrame(themeSyncFrameRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    if (!scene || loading) {
+      return;
+    }
+
+    scheduleThemeTokenSync();
+  }, [activeId, loading, scene, scheduleThemeTokenSync]);
 
   useEffect(() => {
     if (!isSidebarOpen) {
@@ -420,7 +482,7 @@ export function App() {
   }, [createDrawing]);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" ref={appShellRef}>
       <main className="editor-shell">
         <div className="app-actions">
           <button
@@ -444,6 +506,7 @@ export function App() {
               onChange={(elements, appState, files) => {
                 const nextScene = sceneFromEditor(elements, appState, files);
                 latestSceneRef.current = nextScene;
+                scheduleThemeTokenSync();
 
                 if (ignoreChangeRef.current) {
                   ignoreChangeRef.current = false;
