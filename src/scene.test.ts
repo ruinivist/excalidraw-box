@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { HttpError, MAX_SCENE_BYTES, normalizeScene, parseJsonBody } from "./scene";
+import { HttpError, MAX_SCENE_BYTES, emptyScene, normalizeScene, parseJsonBody } from "./scene";
 
 describe("scene helpers", () => {
+  test("creates empty scenes with dark theme by default", () => {
+    const scene = emptyScene();
+
+    expect(scene.appState.theme).toBe("dark");
+  });
+
   test("normalizes volatile app state fields", () => {
     const scene = normalizeScene({
       elements: [],

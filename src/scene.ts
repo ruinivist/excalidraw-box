@@ -26,7 +26,7 @@ const VOLATILE_APP_STATE_KEYS = new Set([
 export function emptyScene(): ScenePayload {
   return {
     elements: [],
-    appState: {},
+    appState: { theme: "dark" },
     files: {},
   };
 }

@@ -27,6 +27,7 @@ describe("drawing store", () => {
     const created = store.createDrawing();
 
     expect(created.title).toBe("Untitled");
+    expect(created.scene.appState.theme).toBe("dark");
     expect(store.listDrawings()).toHaveLength(1);
 
     const updated = store.updateDrawing(created.id, {

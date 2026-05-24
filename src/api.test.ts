@@ -20,6 +20,15 @@ function withApi() {
 }
 
 describe("api", () => {
+  test("creates a drawing with dark theme by default", async () => {
+    const { api, cleanup } = withApi();
+
+    const created = await api.createDrawing().json();
+
+    expect(created.appState.theme).toBe("dark");
+    cleanup();
+  });
+
   test("returns 400 for invalid JSON", async () => {
     const { api, cleanup } = withApi();
     const drawing = await api.createDrawing().json();
