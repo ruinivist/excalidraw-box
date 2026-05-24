@@ -111,12 +111,11 @@ input {
 }
 
 .drawing-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 32px;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   border-radius: 8px;
-  padding: 4px;
+  padding: 4px 12px;
 }
 
 .drawing-item-active {
@@ -125,11 +124,12 @@ input {
 }
 
 .drawing-link {
+  flex: 1 1 auto;
   min-width: 0;
   border: 0;
   background: transparent;
   color: inherit;
-  padding: 8px;
+  padding: 8px 0;
   text-align: left;
   font-size: var(--app-sidebar-font-size);
 }
@@ -229,6 +229,7 @@ input {
 
 .icon-button {
   display: inline-flex;
+  flex: 0 0 32px;
   align-items: center;
   justify-content: center;
   width: 32px;
