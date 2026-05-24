@@ -453,7 +453,7 @@ export function App() {
       />
       <aside className={isSidebarOpen ? "sidebar sidebar-open" : "sidebar"} aria-hidden={!isSidebarOpen}>
         <div className="sidebar-header">
-          <h1>excali</h1>
+          <h1>excali-box</h1>
           <div className="sidebar-actions">
             <button type="button" className="primary-button" onClick={() => void handleCreateDrawing()}>
               New
