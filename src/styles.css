@@ -118,30 +118,12 @@ input {
   gap: 8px;
 }
 
-.status-badge,
 .primary-button,
 .secondary-button,
 .icon-button {
   border: 1px solid #d4d4d8;
   border-radius: 8px;
   background: #ffffff;
-}
-
-.status-badge {
-  padding: 8px 10px;
-  font-size: 13px;
-}
-
-.status-saving {
-  color: #1d4ed8;
-}
-
-.status-failed {
-  color: #b91c1c;
-}
-
-.status-saved {
-  color: #166534;
 }
 
 .primary-button,

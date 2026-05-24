@@ -12,8 +12,6 @@ import type {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_TITLE, type DrawingMeta, type ScenePayload } from "./shared";
 
-type SaveStatus = "saved" | "saving" | "failed";
-
 type DrawingResponse = DrawingMeta & ScenePayload;
 
 function pathToId(pathname = window.location.pathname): string | null {
@@ -95,7 +93,6 @@ export function App() {
   const [activeTitle, setActiveTitle] = useState(DEFAULT_TITLE);
   const [scene, setScene] = useState<ScenePayload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [error, setError] = useState<string | null>(null);
 
   const currentIdRef = useRef<string | null>(activeId);
@@ -123,8 +120,6 @@ export function App() {
     if (!drawingId || !nextScene) {
       return;
     }
-
-    setSaveStatus("saving");
     setError(null);
 
     const promise = requestJson<{ ok: true; drawing: DrawingMeta }>(`/api/drawings/${drawingId}`, {
@@ -133,10 +128,8 @@ export function App() {
     })
       .then((body) => {
         setDrawings((current) => replaceMeta(current, body.drawing));
-        setSaveStatus("saved");
       })
       .catch((saveError: unknown) => {
-        setSaveStatus("failed");
         setError(saveError instanceof Error ? saveError.message : "Save failed");
         throw saveError;
       })
@@ -166,7 +159,6 @@ export function App() {
       clearTimeout(timeoutRef.current);
     }
 
-    setSaveStatus("saving");
     timeoutRef.current = window.setTimeout(() => {
       timeoutRef.current = null;
       void saveScene();
@@ -204,7 +196,6 @@ export function App() {
         setActiveId(drawing.id);
         setActiveTitle(drawing.title);
         setScene(nextScene);
-        setSaveStatus("saved");
       } catch (loadError) {
         const list = await refreshList();
         if (list.length === 0) {
@@ -435,9 +426,6 @@ export function App() {
 
       <main className="editor-shell">
         <div className="toolbar">
-          <span className={`status-badge status-${saveStatus}`}>
-            {saveStatus === "saving" ? "Saving..." : saveStatus === "failed" ? "Save failed" : "Saved"}
-          </span>
           <button type="button" className="secondary-button" onClick={() => void exportPng()} disabled={!scene}>
             Export PNG
           </button>
@@ -459,7 +447,8 @@ export function App() {
               key={activeDrawing?.id ?? activeId}
               initialData={sceneToInitialData(scene)}
               onChange={(elements, appState, files) => {
-                latestSceneRef.current = sceneFromEditor(elements, appState, files);
+                const nextScene = sceneFromEditor(elements, appState, files);
+                latestSceneRef.current = nextScene;
 
                 if (ignoreChangeRef.current) {
                   ignoreChangeRef.current = false;
