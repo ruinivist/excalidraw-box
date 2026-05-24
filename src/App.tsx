@@ -1,9 +1,5 @@
 import "../node_modules/@excalidraw/excalidraw/dist/prod/index.css";
-import {
-  Excalidraw,
-  exportToBlob,
-  serializeAsJSON,
-} from "@excalidraw/excalidraw";
+import { Excalidraw } from "@excalidraw/excalidraw";
 import type {
   AppState,
   BinaryFiles,
@@ -63,32 +59,6 @@ function sceneFromEditor(
     appState: appState as unknown as Record<string, unknown>,
     files: files as unknown as Record<string, unknown>,
   };
-}
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-function filenameBase(title: string): string {
-  const safeTitle = title
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  const now = new Date();
-  const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-    now.getDate(),
-  ).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(
-    now.getMinutes(),
-  ).padStart(2, "0")}`;
-
-  return `${safeTitle || "drawing"}-${stamp}`;
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -332,49 +302,6 @@ export function App() {
     }
   }, []);
 
-  const exportPng = useCallback(async () => {
-    const latest = latestSceneRef.current;
-    if (!latest) {
-      return;
-    }
-
-    const blob = await exportToBlob({
-      elements: latest.elements as never[],
-      appState: {
-        ...(latest.appState as unknown as AppState),
-        exportBackground: true,
-      },
-      files: latest.files as BinaryFiles,
-      mimeType: "image/png",
-      getDimensions: (width: number, height: number) => ({
-        width,
-        height,
-        scale: 2,
-      }),
-    });
-
-    downloadBlob(blob, `${filenameBase(currentTitleRef.current)}.png`);
-  }, []);
-
-  const exportExcalidraw = useCallback(() => {
-    const latest = latestSceneRef.current;
-    if (!latest) {
-      return;
-    }
-
-    const json = serializeAsJSON(
-      latest.elements as never[],
-      latest.appState as Partial<AppState>,
-      latest.files as BinaryFiles,
-      "local",
-    );
-
-    downloadBlob(
-      new Blob([json], { type: "application/json" }),
-      `${filenameBase(currentTitleRef.current)}.excalidraw`,
-    );
-  }, []);
-
   const syncThemeTokens = useCallback(() => {
     const appShell = appShellRef.current;
     const excalidrawRoot = appShell?.querySelector<HTMLElement>(".excalidraw");
@@ -535,14 +462,6 @@ export function App() {
               ×
             </button>
           </div>
-        </div>
-        <div className="sidebar-toolbar">
-          <button type="button" className="secondary-button" onClick={() => void exportPng()} disabled={!scene}>
-            Export PNG
-          </button>
-          <button type="button" className="secondary-button" onClick={exportExcalidraw} disabled={!scene}>
-            Export .excalidraw
-          </button>
         </div>
         <div className="drawing-list">
           {drawings.map((drawing) => (
