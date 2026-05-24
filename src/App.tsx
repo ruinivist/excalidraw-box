@@ -87,6 +87,16 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return body;
 }
 
+function DrawerIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3.5" y="5" width="17" height="14" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M9 5v14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M5.75 9h1.5M5.75 12h1.5M5.75 15h1.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function App() {
   const [drawings, setDrawings] = useState<DrawingMeta[]>([]);
   const [activeId, setActiveId] = useState<string | null>(pathToId());
@@ -94,6 +104,7 @@ export function App() {
   const [scene, setScene] = useState<ScenePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const currentIdRef = useRef<string | null>(activeId);
   const currentTitleRef = useRef(activeTitle);
@@ -370,13 +381,104 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isSidebarOpen]);
+
+  const openSidebar = useCallback(() => {
+    setIsSidebarOpen(true);
+  }, []);
+
+  const closeSidebar = useCallback(() => {
+    setIsSidebarOpen(false);
+  }, []);
+
+  const handleSelectDrawing = useCallback(
+    async (drawingId: string) => {
+      setIsSidebarOpen(false);
+      await navigateToDrawing(drawingId);
+    },
+    [navigateToDrawing],
+  );
+
+  const handleCreateDrawing = useCallback(async () => {
+    setIsSidebarOpen(false);
+    await createDrawing();
+  }, [createDrawing]);
+
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <main className="editor-shell">
+        <div className="app-actions">
+          <button
+            type="button"
+            className="secondary-button app-actions-toggle"
+            onClick={openSidebar}
+            aria-label="Open drawings"
+          >
+            <DrawerIcon />
+            <span className="sr-only">Open drawings</span>
+          </button>
+        </div>
+
+        {loading || !scene ? (
+          <div className="editor-loading">{error ?? "Loading..."}</div>
+        ) : (
+          <div className="editor-frame">
+            <Excalidraw
+              key={activeDrawing?.id ?? activeId}
+              initialData={sceneToInitialData(scene)}
+              onChange={(elements, appState, files) => {
+                const nextScene = sceneFromEditor(elements, appState, files);
+                latestSceneRef.current = nextScene;
+
+                if (ignoreChangeRef.current) {
+                  ignoreChangeRef.current = false;
+                  return;
+                }
+
+                scheduleSave();
+              }}
+            />
+          </div>
+        )}
+      </main>
+      <div
+        className={isSidebarOpen ? "sidebar-backdrop sidebar-backdrop-open" : "sidebar-backdrop"}
+        onClick={closeSidebar}
+        aria-hidden={!isSidebarOpen}
+      />
+      <aside className={isSidebarOpen ? "sidebar sidebar-open" : "sidebar"} aria-hidden={!isSidebarOpen}>
         <div className="sidebar-header">
           <h1>excali</h1>
-          <button type="button" className="primary-button" onClick={() => void createDrawing()}>
-            New
+          <div className="sidebar-actions">
+            <button type="button" className="primary-button" onClick={() => void handleCreateDrawing()}>
+              New
+            </button>
+            <button type="button" className="icon-button" onClick={closeSidebar} aria-label="Close drawings">
+              ×
+            </button>
+          </div>
+        </div>
+        <div className="sidebar-toolbar">
+          <button type="button" className="secondary-button" onClick={() => void exportPng()} disabled={!scene}>
+            Export PNG
+          </button>
+          <button type="button" className="secondary-button" onClick={exportExcalidraw} disabled={!scene}>
+            Export .excalidraw
           </button>
         </div>
         <div className="drawing-list">
@@ -406,7 +508,7 @@ export function App() {
                 <button
                   type="button"
                   className="drawing-link"
-                  onClick={() => void navigateToDrawing(drawing.id)}
+                  onClick={() => void handleSelectDrawing(drawing.id)}
                 >
                   <span className="drawing-title">{drawing.title}</span>
                 </button>
@@ -423,44 +525,6 @@ export function App() {
           ))}
         </div>
       </aside>
-
-      <main className="editor-shell">
-        <div className="toolbar">
-          <button type="button" className="secondary-button" onClick={() => void exportPng()} disabled={!scene}>
-            Export PNG
-          </button>
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={exportExcalidraw}
-            disabled={!scene}
-          >
-            Export .excalidraw
-          </button>
-        </div>
-
-        {loading || !scene ? (
-          <div className="editor-loading">{error ?? "Loading..."}</div>
-        ) : (
-          <div className="editor-frame">
-            <Excalidraw
-              key={activeDrawing?.id ?? activeId}
-              initialData={sceneToInitialData(scene)}
-              onChange={(elements, appState, files) => {
-                const nextScene = sceneFromEditor(elements, appState, files);
-                latestSceneRef.current = nextScene;
-
-                if (ignoreChangeRef.current) {
-                  ignoreChangeRef.current = false;
-                  return;
-                }
-
-                scheduleSave();
-              }}
-            />
-          </div>
-        )}
-      </main>
     </div>
   );
 }
