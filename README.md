@@ -2,6 +2,11 @@
 
 Private self-hosted Excalidraw with Bun and SQLite.
 
+This is bare wrapper around the excalidraw packages that adds autosave and disk-persistence.
+No auth to keep things simple - you either run in a private network or put it behind a Caddy auth or similar solutions.
+
+> GPT 5.5 generated
+
 ## Run locally
 
 ```bash
