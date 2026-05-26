@@ -8,7 +8,7 @@ export function createServer() {
 
   return {
     port: Number(process.env.PORT ?? "3000"),
-    hostname: process.env.HOST ?? "0.0.0.0",
+    hostname: process.env.HOST ?? "localhost",
     routes: {
       "/": (request: Request) => {
         const drawing = drawingStore.ensureInitialDrawing();

@@ -12,7 +12,7 @@ FROM oven/bun:1.3.11-alpine AS runner
 WORKDIR /app/dist
 
 ENV NODE_ENV=production
-ENV HOST=0.0.0.0
+ENV HOST=localhost
 ENV PORT=3000
 ENV DATABASE_PATH=/data/excalidraw.sqlite
 
