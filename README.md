@@ -7,6 +7,17 @@ No auth to keep things simple - you either run in a private network or put it be
 
 > GPT 5.5 generated
 
+## Pull from GHCR and run
+
+Images are published to:
+
+`ghcr.io/ruinivist/excalidraw-box:<version>`
+
+```bash
+docker pull ghcr.io/ruinivist/excalidraw-box:latest
+docker run --rm -p 3000:3000 -v "$PWD/excali-box-data:/data" ghcr.io/ruinivist/excalidraw-box:latest
+```
+
 ## Run locally
 
 ```bash
