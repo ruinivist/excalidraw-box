@@ -1,4 +1,4 @@
-# excali
+# excali-box
 
 Private self-hosted Excalidraw with Bun and SQLite.
 
@@ -15,7 +15,7 @@ Images are published to:
 
 ```bash
 docker pull ghcr.io/ruinivist/excalidraw-box:latest
-docker run --rm -p 3000:3000 -v "$PWD/excali-box-data:/data" ghcr.io/ruinivist/excalidraw-box:latest
+docker run --rm -p 127.0.0.1:3000:3000 -v "$PWD/excali-box-data:/data" ghcr.io/ruinivist/excalidraw-box:latest
 ```
 
 ## Run locally
@@ -38,13 +38,11 @@ bun run typecheck
 
 ```bash
 docker build -t excali .
-docker run --rm -p 3000:3000 -v "$PWD/excali-box-data:/data" excali
+docker run --rm -p 127.0.0.1:3000:3000 -v "$PWD/excali-box-data:/data" excali
 ```
 
 This will make the data persistent in the `excali-box-data` folder in the current directory, the site will be available at `localhost:3000`.
 
-By default, this image binds to `localhost`. To expose it on all interfaces, set `HOST=0.0.0.0`:
-
 ```bash
-docker run --rm -p 3000:3000 -v "$PWD/excali-box-data:/data" -e HOST=0.0.0.0 excali
+docker run --rm -p 127.0.0.1:3000:3000 -v "$PWD/excali-box-data:/data" -e HOST=0.0.0.0 excali
 ```
