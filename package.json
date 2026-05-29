@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "bun --hot src/server.tsx",
-    "build": "rm -rf dist && bun build --target=bun ./src/server.tsx --outdir ./dist",
+    "build": "rm -rf dist && bun build --minify --target=browser ./src/index.html --outdir ./dist/public && bun build --target=bun ./src/server.tsx --outdir ./dist",
     "start": "cd dist && DATABASE_PATH=../data/excalidraw.sqlite bun ./server.js",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
