@@ -253,6 +253,22 @@ input {
   pointer-events: auto;
 }
 
+.toast-overlay {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+  background: var(--app-overlay-bg);
+  backdrop-filter: blur(4px);
+  color: var(--app-text-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: var(--app-sidebar-font-size);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--app-sidebar-border);
+  pointer-events: none;
+}
+
 .editor-frame,
 .editor-loading {
   height: 100%;
