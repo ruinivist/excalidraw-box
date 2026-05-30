@@ -169,14 +169,16 @@ input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--lg-button-size, 2.25rem);
-  height: var(--lg-button-size, 2.25rem);
+  width: 2.25rem;
+  height: 2.25rem;
   padding: 0;
   border: none;
-  border-radius: var(--border-radius-lg, 12px);
+  border-radius: 8px;
   box-shadow: 0 0 0 1px var(--app-surface-lowest);
-  background: var(--app-surface-low);
+  background: var(--app-island-bg);
   color: var(--app-text-color);
+  cursor: pointer;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
 }
 
 .app-actions-toggle svg {
@@ -265,12 +267,12 @@ input {
 }
 
 .app-actions-toggle:hover {
-  background: var(--app-button-hover-bg);
+  background-color: var(--app-button-hover-bg);
 }
 
 .app-actions-toggle:active {
-  box-shadow: 0 0 0 1px var(--app-button-active-border);
-  background: var(--app-button-active-bg);
+  background-color: var(--app-button-active-bg);
+  box-shadow: inset 0 0 0 1px var(--app-button-active-border);
 }
 
 .sr-only {

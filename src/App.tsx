@@ -414,7 +414,7 @@ export function App() {
         <div className="app-actions">
           <button
             type="button"
-            className="secondary-button app-actions-toggle"
+            className="app-actions-toggle"
             onClick={openSidebar}
             aria-label="Open drawings"
           >
