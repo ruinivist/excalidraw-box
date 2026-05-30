@@ -182,9 +182,8 @@ input {
 }
 
 .app-actions-toggle svg {
-  width: 1.125rem;
-  height: 1.125rem;
-  overflow: visible;
+  width: 20px;
+  height: 20px;
 }
 
 .primary-button,
