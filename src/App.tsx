@@ -143,7 +143,7 @@ export function App() {
       .then((body) => {
         setDrawings((current) => replaceMeta(current, body.drawing));
         if (isManual) {
-          setToastMessage("Saved.");
+          setToastMessage("Saved");
           if (toastTimeoutRef.current !== null) {
             clearTimeout(toastTimeoutRef.current);
           }
@@ -153,7 +153,7 @@ export function App() {
       .catch((saveError: unknown) => {
         setError(saveError instanceof Error ? saveError.message : "Save failed");
         if (isManual) {
-          setToastMessage("Save failed.");
+          setToastMessage("Save failed");
           if (toastTimeoutRef.current !== null) {
             clearTimeout(toastTimeoutRef.current);
           }
