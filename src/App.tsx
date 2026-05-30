@@ -96,6 +96,7 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const currentIdRef = useRef<string | null>(activeId);
   const currentTitleRef = useRef(activeTitle);
@@ -106,6 +107,7 @@ export function App() {
   const inFlightSaveRef = useRef<Promise<void> | null>(null);
   const loadVersionRef = useRef(0);
   const themeSyncFrameRef = useRef<number | null>(null);
+  const toastTimeoutRef = useRef<number | null>(null);
 
   const activeDrawing = useMemo(
     () => drawings.find((drawing) => drawing.id === activeId) ?? null,
@@ -118,7 +120,7 @@ export function App() {
     return list;
   }, []);
 
-  const saveScene = useCallback(async () => {
+  const saveScene = useCallback(async (isManual = false) => {
     const drawingId = currentIdRef.current;
     const nextScene = latestSceneRef.current;
     if (!drawingId || !nextScene) {
@@ -126,15 +128,37 @@ export function App() {
     }
     setError(null);
 
+    if (isManual) {
+      setToastMessage("Saving...");
+      if (toastTimeoutRef.current !== null) {
+        clearTimeout(toastTimeoutRef.current);
+        toastTimeoutRef.current = null;
+      }
+    }
+
     const promise = requestJson<{ ok: true; drawing: DrawingMeta }>(`/api/drawings/${drawingId}`, {
       method: "PUT",
       body: JSON.stringify(nextScene),
     })
       .then((body) => {
         setDrawings((current) => replaceMeta(current, body.drawing));
+        if (isManual) {
+          setToastMessage("Saved.");
+          if (toastTimeoutRef.current !== null) {
+            clearTimeout(toastTimeoutRef.current);
+          }
+          toastTimeoutRef.current = window.setTimeout(() => setToastMessage(null), 2000);
+        }
       })
       .catch((saveError: unknown) => {
         setError(saveError instanceof Error ? saveError.message : "Save failed");
+        if (isManual) {
+          setToastMessage("Save failed.");
+          if (toastTimeoutRef.current !== null) {
+            clearTimeout(toastTimeoutRef.current);
+          }
+          toastTimeoutRef.current = window.setTimeout(() => setToastMessage(null), 2000);
+        }
         throw saveError;
       })
       .finally(() => {
@@ -158,6 +182,17 @@ export function App() {
     }
   }, [saveScene]);
 
+  const triggerManualSave = useCallback(async () => {
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (inFlightSaveRef.current) {
+      await inFlightSaveRef.current;
+    }
+    await saveScene(true);
+  }, [saveScene]);
+
   const scheduleSave = useCallback(() => {
     if (timeoutRef.current !== null) {
       clearTimeout(timeoutRef.current);
@@ -166,7 +201,7 @@ export function App() {
     timeoutRef.current = window.setTimeout(() => {
       timeoutRef.current = null;
       void saveScene();
-    }, 1500);
+    }, 30000);
   }, [saveScene]);
 
   const loadDrawing = useCallback(
@@ -330,6 +365,20 @@ export function App() {
   }, [syncThemeTokens]);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        e.stopPropagation();
+        void triggerManualSave();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    };
+  }, [triggerManualSave]);
+
+  useEffect(() => {
     const currentPathId = pathToId();
     if (currentPathId) {
       void loadDrawing(currentPathId);
@@ -410,6 +459,11 @@ export function App() {
 
   return (
     <div className="app-shell" ref={appShellRef}>
+      {toastMessage && (
+        <div className="toast-overlay" aria-live="polite">
+          {toastMessage}
+        </div>
+      )}
       <main className="editor-shell">
         <div className="app-actions">
           <button
