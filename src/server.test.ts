@@ -1,13 +1,18 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-import { createProductionClientAssets } from "./server";
+import { createDrawingStore, type DrawingStore } from "./db";
+import { createServer } from "./server";
 
 const cleanup: string[] = [];
+const stores: DrawingStore[] = [];
 
 afterEach(() => {
+  while (stores.length > 0) {
+    stores.pop()?.close();
+  }
+
   while (cleanup.length > 0) {
     const dir = cleanup.pop();
     if (dir) {
@@ -16,83 +21,50 @@ afterEach(() => {
   }
 });
 
-function createClientAssetsFixture() {
-  const dir = mkdtempSync(join(tmpdir(), "excali-client-assets-"));
+function createServerFixture() {
+  const dir = mkdtempSync(join(tmpdir(), "excali-server-"));
   cleanup.push(dir);
 
-  writeFileSync(join(dir, "index.html"), "<!doctype html><html><body>ok</body></html>");
-  writeFileSync(join(dir, "index-abc123.js"), "console.log('ok');");
-  writeFileSync(join(dir, "index-abc123.js.br"), "compressed-brotli");
+  const store = createDrawingStore(join(dir, "test.sqlite"));
+  stores.push(store);
 
-  return createProductionClientAssets(
-    {
-      index: "./index.html",
-      files: [
-        {
-          path: "./index.html",
-          loader: "html",
-          headers: {
-            "content-type": "text/html;charset=utf-8",
-          },
-        },
-        {
-          path: "./index-abc123.js",
-          loader: "js",
-          headers: {
-            "content-type": "text/javascript;charset=utf-8",
-          },
-        },
-      ],
-    },
-    pathToFileURL(`${dir}/`),
-  );
+  return {
+    store,
+    server: createServer({ drawingStore: store }),
+  };
 }
 
-describe("production client assets", () => {
-  test("serves the HTML shell with revalidation headers", async () => {
-    const assets = createClientAssetsFixture();
+describe("createServer", () => {
+  test("redirects / to the latest drawing", () => {
+    const { server, store } = createServerFixture();
 
-    const response = assets.serveHtml(new Request("http://local/d/abc123"));
+    const response = server.routes["/"]?.(new Request("http://local/")) as Response;
+    const created = store.listDrawings();
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe("no-cache");
-    expect(response.headers.get("etag")).toBeNull();
-    expect(await response.text()).toContain("<!doctype html>");
+    expect(created).toHaveLength(1);
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(`http://local/d/${created[0]?.id}`);
   });
 
-  test("serves immutable hashed assets as Brotli", async () => {
-    const assets = createClientAssetsFixture();
-
-    const response = assets.serveAsset(
-      new Request("http://local/index-abc123.js", {
-        headers: {
-          "accept-encoding": "gzip, br",
-        },
-      }),
-    );
+  test("keeps Bun responsible for API routes", async () => {
+    const { server } = createServerFixture();
+    const response = await server.routes["/api/health"]?.GET?.();
 
     expect(response?.status).toBe(200);
-    expect(response?.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
-    expect(response?.headers.get("content-encoding")).toBe("br");
-    expect(response?.headers.get("vary")).toBe("Accept-Encoding");
-    expect(response?.headers.get("etag")).toBeNull();
-    expect(await response?.text()).toBe("compressed-brotli");
+    expect(await response?.json()).toEqual({ ok: true });
   });
 
-  test("rejects asset requests without Brotli support", async () => {
-    const assets = createClientAssetsFixture();
+  test("does not expose a Bun static route for drawings in production", () => {
+    const { server } = createServerFixture();
 
-    const response = assets.serveAsset(
-      new Request("http://local/index-abc123.js", {
-        headers: {
-          "accept-encoding": "gzip",
-        },
-      }),
-    );
+    expect(Object.hasOwn(server.routes, "/d/:id")).toBe(false);
+  });
 
-    expect(response?.status).toBe(406);
-    expect(response?.headers.get("cache-control")).toBe("no-store");
-    expect(response?.headers.get("vary")).toBe("Accept-Encoding");
-    expect(await response?.text()).toBe("Brotli encoding is required");
+  test("returns JSON 404 for unmatched requests", async () => {
+    const { server } = createServerFixture();
+    const response = await server.fetch(new Request("http://local/index-abc123.js"));
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ ok: false, error: "Not found" });
   });
 });

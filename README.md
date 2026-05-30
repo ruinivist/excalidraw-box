@@ -1,9 +1,9 @@
 # excali-box
 
-Private self-hosted Excalidraw with Bun and SQLite.
+Private self-hosted Excalidraw with Bun, Caddy, and SQLite.
 
 This is bare wrapper around the excalidraw packages that adds autosave and disk-persistence.
-No auth to keep things simple - you either run in a private network or put it behind a Caddy auth or similar solutions.
+No auth to keep things simple - you either run in a private network or put it behind Caddy auth or similar solutions.
 
 > GPT 5.5 generated
 
@@ -15,7 +15,7 @@ Images are published to:
 
 ```bash
 docker pull ghcr.io/ruinivist/excalidraw-box:latest
-docker run --rm -p 127.0.0.1:3000:3000 -v "$PWD/excali-box-data:/data" ghcr.io/ruinivist/excalidraw-box:latest
+docker run --rm -p 127.0.0.1:3000:80 -v "$PWD/excali-box-data:/data" ghcr.io/ruinivist/excalidraw-box:latest
 ```
 
 ## Run locally
@@ -38,7 +38,7 @@ bun run typecheck
 
 ```bash
 docker build -t excali .
-docker run --rm -p 127.0.0.1:3000:3000 -v "$PWD/excali-box-data:/data" excali
+docker run --rm -p 127.0.0.1:3000:80 -v "$PWD/excali-box-data:/data" excali
 ```
 
-This will make the data persistent in the `excali-box-data` folder in the current directory, the site will be available at `localhost:3000`.
+This will make the data persistent in the `excali-box-data` folder in the current directory, with Caddy serving the browser build on `localhost:3000`

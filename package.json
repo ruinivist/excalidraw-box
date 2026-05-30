@@ -3,9 +3,11 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun --hot src/server.tsx",
-    "build": "rm -rf dist && bun build --target=bun --production --splitting ./src/server.tsx --outdir ./dist && bun run ./scripts/compress-assets.ts",
-    "start": "cd dist && DATABASE_PATH=../data/excalidraw.sqlite bun ./server.js",
+    "dev": "bun --hot src/dev-server.tsx",
+    "build": "rm -rf dist && bun run build:client && bun run build:server",
+    "build:client": "bun build --target=browser --production --splitting --outdir ./dist/public ./src/index.html",
+    "build:server": "mkdir -p ./dist/server && bun build --target=bun --production --outfile ./dist/server/server.js ./src/server.tsx",
+    "start": "DATABASE_PATH=./data/excalidraw.sqlite bun ./dist/server/server.js",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

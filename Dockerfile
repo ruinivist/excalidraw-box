@@ -5,21 +5,28 @@ COPY package.json bun.lock tsconfig.json ./
 RUN bun install --frozen-lockfile
 
 COPY src ./src
-COPY README.md ./
 RUN bun run build
 
+FROM caddy:2-alpine AS caddy
+
 FROM oven/bun:1.3.11-alpine AS runner
-WORKDIR /app/dist
+WORKDIR /app
 
 ENV NODE_ENV=production
-ENV HOST=0.0.0.0
+ENV HOST=127.0.0.1
 ENV PORT=3000
 ENV DATABASE_PATH=/data/excalidraw.sqlite
 
-COPY --from=build /app/dist ./
+COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
+COPY --from=build /app/dist/public /srv/public
+COPY --from=build /app/dist/server /app/dist/server
+COPY Caddyfile /etc/caddy/Caddyfile
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN mkdir -p /data
+RUN mkdir -p /data && chmod +x /usr/local/bin/docker-entrypoint.sh
 
-EXPOSE 3000
+VOLUME ["/data"]
 
-CMD ["bun", "./server.js"]
+EXPOSE 80
+
+CMD ["/usr/local/bin/docker-entrypoint.sh"]
