@@ -59,9 +59,18 @@ export function createServer() {
         // Cache indefinitely except index.html
         const headers: Record<string, string> = {};
         if (!reqPath.endsWith("index.html")) {
-          headers["Cache-Control"] = "public, max-age=31536000, immutable";
+          // Add etag logic or use bun's hashes by only caching files that actually have hashes in them.
+          // Bun generates hashes like chunk-02ahh9r5.js, we can check for that pattern
+          // If we wanted to do ETag we could use Bun.file(path).size + lastModified but hashing is safer
+          const isHashed = reqPath.match(/-[a-zA-Z0-9]{8}\.(js|css)$/);
+          if (isHashed) {
+            headers["Cache-Control"] = "public, max-age=31536000, immutable";
+          } else {
+            headers["Cache-Control"] = "no-cache";
+          }
         } else {
           headers["Content-Type"] = "text/html; charset=utf-8";
+          headers["Cache-Control"] = "no-cache";
         }
         return new Response(file, { headers });
       }
