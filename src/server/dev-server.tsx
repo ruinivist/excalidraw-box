@@ -1,5 +1,5 @@
-import index from "./index.html";
-import { createServer } from "./server";
+import index from "../client/index.html";
+import { createServer } from "./http-server";
 
 export function createDevServer() {
   const server = createServer();

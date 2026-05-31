@@ -1,11 +1,11 @@
-import "../node_modules/@excalidraw/excalidraw/dist/prod/index.css";
+import "../../../node_modules/@excalidraw/excalidraw/dist/prod/index.css";
 import { Excalidraw } from "@excalidraw/excalidraw";
 import type {
   AppState,
   BinaryFiles,
   ExcalidrawInitialDataState,
 } from "@excalidraw/excalidraw/types";
-import { type ScenePayload } from "./shared";
+import { type ScenePayload } from "../../core/shared";
 
 type EditorCanvasProps = {
   activeId: string | null;

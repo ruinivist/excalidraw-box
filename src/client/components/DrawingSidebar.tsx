@@ -1,4 +1,4 @@
-import { type DrawingMeta } from "./shared";
+import { type DrawingMeta } from "../../core/shared";
 
 type DrawingSidebarProps = {
   open: boolean;

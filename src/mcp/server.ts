@@ -1,9 +1,9 @@
 import { applyPatch, type Operation } from "fast-json-patch";
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
-import { createDrawingStore, type DrawingStore } from "./db";
-import { normalizeScene, normalizeTitle } from "./scene";
-import { type ScenePayload } from "./shared";
+import { normalizeScene, normalizeTitle } from "../core/scene";
+import { type ScenePayload } from "../core/shared";
+import { createDrawingStore, type DrawingStore } from "../server/db";
 
 const sceneSchema = z.object({
   elements: z.array(z.unknown()),

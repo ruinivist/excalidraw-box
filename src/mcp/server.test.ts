@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createDrawingStore, type DrawingStore } from "./db";
-import { createMcpToolHandlers, resolvePublicBaseUrl } from "./mcp-server";
-import { type ScenePayload } from "./shared";
+import { type ScenePayload } from "../core/shared";
+import { createDrawingStore, type DrawingStore } from "../server/db";
+import { createMcpToolHandlers, resolvePublicBaseUrl } from "./server";
 
 const cleanup: Array<{ dir: string; store: DrawingStore }> = [];
 

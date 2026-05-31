@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_TITLE, type DrawingMeta, type ScenePayload } from "./shared";
+import { DEFAULT_TITLE, type DrawingMeta, type ScenePayload } from "../../core/shared";
 
 type DrawingResponse = DrawingMeta & ScenePayload;
 type ApiErrorBody = { ok: false; error?: string; drawing?: DrawingMeta };

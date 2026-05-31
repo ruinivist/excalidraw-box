@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DrawingSidebar, DrawingsToggle } from "./DrawingSidebar";
-import { EditorCanvas } from "./EditorCanvas";
-import { useDrawingSession } from "./useDrawingSession";
-import { useThemeTokenSync } from "./useThemeTokenSync";
+import { DrawingSidebar, DrawingsToggle } from "./components/DrawingSidebar";
+import { EditorCanvas } from "./components/EditorCanvas";
+import { useDrawingSession } from "./hooks/useDrawingSession";
+import { useThemeTokenSync } from "./hooks/useThemeTokenSync";
 
 export function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

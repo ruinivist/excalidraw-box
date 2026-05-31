@@ -2,8 +2,8 @@ import { Database } from "bun:sqlite";
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { DEFAULT_TITLE, type DrawingMeta, type DrawingRecord, type ScenePayload } from "./shared";
-import { emptyScene, normalizeScene, normalizeTitle } from "./scene";
+import { DEFAULT_TITLE, type DrawingMeta, type DrawingRecord, type ScenePayload } from "../core/shared";
+import { emptyScene, normalizeScene, normalizeTitle } from "../core/scene";
 
 type DrawingRow = {
   id: string;
