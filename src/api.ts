@@ -15,7 +15,7 @@ function errorResponse(error: unknown): Response {
   }
 
   if (error instanceof Error && error.name === "AbortError") {
-    return json({ ok: false, error: "Request aborted" }, { status: 400 });
+    return json({ ok: false, error: "Request aborted" }, { status: 499 });
   }
 
   console.error(error);
