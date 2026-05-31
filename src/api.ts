@@ -14,6 +14,10 @@ function errorResponse(error: unknown): Response {
     return json({ ok: false, error: error.message }, { status: error.status });
   }
 
+  if (error instanceof Error && error.name === "AbortError") {
+    return json({ ok: false, error: "Request aborted" }, { status: 499 });
+  }
+
   console.error(error);
   return json({ ok: false, error: "Internal server error" }, { status: 500 });
 }
