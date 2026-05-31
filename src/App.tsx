@@ -433,7 +433,7 @@ export function App() {
     if (
       activeDrawing &&
       loadedUpdatedAtRef.current &&
-      activeDrawing.updatedAt > loadedUpdatedAtRef.current &&
+      activeDrawing.updatedAt !== loadedUpdatedAtRef.current &&
       !inFlightSaveRef.current &&
       !inFlightTitleSaveRef.current
     ) {
