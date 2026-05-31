@@ -54,8 +54,10 @@ describe("mcp tool handlers", () => {
     expect(result).toEqual({
       id: result.id,
       title: "explicit",
+      revision: 1,
       url: `http://example.test/d/${result.id}`,
     });
+    expect(drawing?.revision).toBe(1);
     expect(drawing?.scene).toEqual(scene);
   });
 
@@ -69,6 +71,7 @@ describe("mcp tool handlers", () => {
     expect(drawing).toMatchObject({
       id: result.id,
       title: "read",
+      revision: 1,
       url: `http://example.test/d/${result.id}`,
       scene,
     });
@@ -83,10 +86,12 @@ describe("mcp tool handlers", () => {
       files: {},
     };
 
-    tools.replace_drawing({ id: result.id, title: "replaced", scene: nextScene });
+    const replaced = tools.replace_drawing({ id: result.id, title: "replaced", scene: nextScene });
 
     expect(store.listDrawings()).toHaveLength(1);
+    expect(replaced.revision).toBe(2);
     expect(store.getDrawing(result.id)?.title).toBe("replaced");
+    expect(store.getDrawing(result.id)?.revision).toBe(2);
     expect(store.getDrawing(result.id)?.scene).toEqual(nextScene);
   });
 
@@ -94,7 +99,7 @@ describe("mcp tool handlers", () => {
     const { store, tools } = createTempTools();
     const result = tools.create_drawing({ title: "patch", scene: testScene() });
 
-    tools.patch_drawing({
+    const patched = tools.patch_drawing({
       id: result.id,
       patch: [
         { op: "replace", path: "/elements/0/x", value: 42 },
@@ -102,6 +107,8 @@ describe("mcp tool handlers", () => {
       ],
     });
 
+    expect(patched.revision).toBe(2);
+    expect(store.getDrawing(result.id)?.revision).toBe(2);
     expect(store.getDrawing(result.id)?.scene.elements).toEqual([{ id: "one", type: "rectangle", x: 42, y: 20 }]);
   });
 

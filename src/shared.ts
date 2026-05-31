@@ -9,6 +9,7 @@ export type DrawingMeta = {
   title: string;
   createdAt: string;
   updatedAt: string;
+  revision: number;
 };
 
 export type DrawingRecord = DrawingMeta & {

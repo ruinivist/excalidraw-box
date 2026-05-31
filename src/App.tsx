@@ -9,6 +9,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_TITLE, type DrawingMeta, type ScenePayload } from "./shared";
 
 type DrawingResponse = DrawingMeta & ScenePayload;
+type ApiErrorBody = { ok: false; error?: string; drawing?: DrawingMeta };
+type UpdateResponse = { ok: true; drawing: DrawingMeta };
+
+class RequestError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: ApiErrorBody,
+  ) {
+    super(body.error ?? `Request failed: ${status}`);
+  }
+}
 
 const EXCALIDRAW_THEME_TOKEN_MAP = [
   ["--island-bg-color", "--app-island-bg"],
@@ -70,12 +81,16 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
     },
   });
 
-  const body = (await response.json()) as T & { error?: string };
+  const body = (await response.json()) as T & ApiErrorBody;
   if (!response.ok) {
-    throw new Error(body.error ?? `Request failed: ${response.status}`);
+    throw new RequestError(response.status, body);
   }
 
   return body;
+}
+
+function isConflictError(error: unknown): error is RequestError & { body: ApiErrorBody & { drawing: DrawingMeta } } {
+  return error instanceof RequestError && error.status === 409 && error.body.drawing !== undefined;
 }
 
 function DrawerIcon() {
@@ -106,8 +121,11 @@ export function App() {
   const timeoutRef = useRef<number | null>(null);
   const inFlightSaveRef = useRef<Promise<void> | null>(null);
   const loadVersionRef = useRef(0);
+  const loadedRevisionRef = useRef<number | null>(null);
+  const loadDrawingRef = useRef<(drawingId: string) => Promise<void>>(async () => {});
   const themeSyncFrameRef = useRef<number | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
+  const [editorReloadNonce, setEditorReloadNonce] = useState(0);
 
   const activeDrawing = useMemo(
     () => drawings.find((drawing) => drawing.id === activeId) ?? null,
@@ -120,9 +138,17 @@ export function App() {
     return list;
   }, []);
 
+  const clearPendingSaveTimeout = useCallback(() => {
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
   const saveScene = useCallback(async (isManual = false) => {
     const drawingId = currentIdRef.current;
     const nextScene = latestSceneRef.current;
+    const expectedRevision = loadedRevisionRef.current;
     if (!drawingId || !nextScene) {
       return;
     }
@@ -136,12 +162,15 @@ export function App() {
       }
     }
 
-    const promise = requestJson<{ ok: true; drawing: DrawingMeta }>(`/api/drawings/${drawingId}`, {
+    const promise = requestJson<UpdateResponse>(`/api/drawings/${drawingId}`, {
       method: "PUT",
-      body: JSON.stringify(nextScene),
+      body: JSON.stringify({ ...nextScene, expectedRevision }),
     })
       .then((body) => {
         setDrawings((current) => replaceMeta(current, body.drawing));
+        if (currentIdRef.current === drawingId) {
+          loadedRevisionRef.current = body.drawing.revision;
+        }
         if (isManual) {
           setToastMessage("Saved");
           if (toastTimeoutRef.current !== null) {
@@ -151,6 +180,20 @@ export function App() {
         }
       })
       .catch((saveError: unknown) => {
+        if (isConflictError(saveError)) {
+          clearPendingSaveTimeout();
+          setError(null);
+          setDrawings((current) => replaceMeta(current, saveError.body.drawing));
+          if (isManual) {
+            setToastMessage("Reloading latest...");
+            if (toastTimeoutRef.current !== null) {
+              clearTimeout(toastTimeoutRef.current);
+              toastTimeoutRef.current = null;
+            }
+          }
+          return loadDrawingRef.current(drawingId);
+        }
+
         setError(saveError instanceof Error ? saveError.message : "Save failed");
         if (isManual) {
           setToastMessage("Save failed");
@@ -167,12 +210,11 @@ export function App() {
 
     inFlightSaveRef.current = promise;
     await promise;
-  }, []);
+  }, [clearPendingSaveTimeout]);
 
   const flushPendingSave = useCallback(async () => {
     if (timeoutRef.current !== null) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+      clearPendingSaveTimeout();
       await saveScene();
       return;
     }
@@ -180,18 +222,17 @@ export function App() {
     if (inFlightSaveRef.current) {
       await inFlightSaveRef.current;
     }
-  }, [saveScene]);
+  }, [clearPendingSaveTimeout, saveScene]);
 
   const triggerManualSave = useCallback(async () => {
     if (timeoutRef.current !== null) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+      clearPendingSaveTimeout();
     }
     if (inFlightSaveRef.current) {
       await inFlightSaveRef.current;
     }
     await saveScene(true);
-  }, [saveScene]);
+  }, [clearPendingSaveTimeout, saveScene]);
 
   const scheduleSave = useCallback(() => {
     if (timeoutRef.current !== null) {
@@ -230,11 +271,13 @@ export function App() {
         currentIdRef.current = drawing.id;
         currentTitleRef.current = drawing.title;
         latestSceneRef.current = nextScene;
+        loadedRevisionRef.current = drawing.revision;
 
-        setDrawings(sortDrawings(list));
+        setDrawings(replaceMeta(list, drawing));
         setActiveId(drawing.id);
         setActiveTitle(drawing.title);
         setScene(nextScene);
+        setEditorReloadNonce((current) => current + 1);
       } catch (loadError) {
         const list = await refreshList();
         if (list.length === 0) {
@@ -260,6 +303,8 @@ export function App() {
     },
     [refreshList],
   );
+
+  loadDrawingRef.current = loadDrawing;
 
   const navigateToDrawing = useCallback(
     async (drawingId: string, options?: { replace?: boolean; flush?: boolean }) => {
@@ -324,18 +369,29 @@ export function App() {
     }
 
     try {
-      const body = await requestJson<{ ok: true; drawing: DrawingMeta }>(`/api/drawings/${drawingId}`, {
+      const body = await requestJson<UpdateResponse>(`/api/drawings/${drawingId}`, {
         method: "PUT",
-        body: JSON.stringify({ title: currentTitleRef.current }),
+        body: JSON.stringify({
+          title: currentTitleRef.current,
+          expectedRevision: loadedRevisionRef.current,
+        }),
       });
 
       currentTitleRef.current = body.drawing.title;
+      loadedRevisionRef.current = body.drawing.revision;
       setActiveTitle(body.drawing.title);
       setDrawings((current) => replaceMeta(current, body.drawing));
     } catch (renameError) {
+      if (isConflictError(renameError)) {
+        clearPendingSaveTimeout();
+        setDrawings((current) => replaceMeta(current, renameError.body.drawing));
+        await loadDrawingRef.current(drawingId);
+        return;
+      }
+
       setError(renameError instanceof Error ? renameError.message : "Rename failed");
     }
-  }, []);
+  }, [clearPendingSaveTimeout]);
 
   const syncThemeTokens = useCallback(() => {
     const appShell = appShellRef.current;
@@ -398,6 +454,42 @@ export function App() {
       window.removeEventListener("popstate", onPopState);
     };
   }, [loadDrawing, navigateToDrawing]);
+
+  useEffect(() => {
+    const checkForExternalChanges = async () => {
+      try {
+        const list = await refreshList();
+        const drawingId = currentIdRef.current;
+        const loadedRevision = loadedRevisionRef.current;
+        const serverDrawing = drawingId ? list.find((drawing) => drawing.id === drawingId) : null;
+
+        if (serverDrawing && loadedRevision !== null && serverDrawing.revision > loadedRevision) {
+          clearPendingSaveTimeout();
+          await loadDrawingRef.current(serverDrawing.id);
+        }
+      } catch {
+        // Focus checks only discover external edits; direct save/load requests report failures.
+      }
+    };
+
+    const handleFocus = () => {
+      void checkForExternalChanges();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void checkForExternalChanges();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [clearPendingSaveTimeout, refreshList]);
 
   useEffect(() => {
     return () => {
@@ -482,7 +574,7 @@ export function App() {
         ) : (
           <div className="editor-frame">
             <Excalidraw
-              key={activeDrawing?.id ?? activeId}
+              key={`${activeDrawing?.id ?? activeId}:${editorReloadNonce}`}
               initialData={sceneToInitialData(scene)}
               onChange={(elements, appState, files) => {
                 const nextScene = sceneFromEditor(elements, appState, files);

@@ -75,10 +75,11 @@ function notFound(id: string): never {
   throw new Error(`Drawing not found: ${id}`);
 }
 
-function mutationResult(publicBaseUrl: string, drawing: { id: string; title: string }) {
+function mutationResult(publicBaseUrl: string, drawing: { id: string; title: string; revision: number }) {
   return {
     id: drawing.id,
     title: drawing.title,
+    revision: drawing.revision,
     url: drawingUrl(publicBaseUrl, drawing.id),
   };
 }
@@ -88,8 +89,12 @@ function updateExistingDrawing(
   id: string,
   update: { scene?: ScenePayload; title?: string },
 ) {
-  const updated = store.updateDrawing(id, update);
-  return updated ?? notFound(id);
+  const result = store.updateDrawing(id, update);
+  if (!result.ok) {
+    return notFound(id);
+  }
+
+  return result.drawing;
 }
 
 function applyScenePatch(scene: ScenePayload, patch: Operation[]): ScenePayload {
@@ -115,6 +120,7 @@ export function createMcpToolHandlers(store: DrawingStore, publicBaseUrl: string
         title: drawing.title,
         createdAt: drawing.createdAt,
         updatedAt: drawing.updatedAt,
+        revision: drawing.revision,
         url: drawingUrl(publicBaseUrl, drawing.id),
         scene: drawing.scene,
       };

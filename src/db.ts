@@ -11,9 +11,15 @@ type DrawingRow = {
   data: string;
   createdAt: string;
   updatedAt: string;
+  revision: number;
 };
 
 type DrawingMetaRow = Omit<DrawingRow, "data">;
+
+export type DrawingUpdateResult =
+  | { ok: true; drawing: DrawingRecord }
+  | { ok: false; reason: "not_found" }
+  | { ok: false; reason: "conflict"; drawing: DrawingRecord };
 
 export type DrawingStore = ReturnType<typeof createDrawingStore>;
 
@@ -44,6 +50,7 @@ function readMeta(row: DrawingMetaRow | null | undefined): DrawingMeta | null {
     title: row.title,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    revision: row.revision,
   };
 }
 
@@ -70,19 +77,26 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
       title TEXT NOT NULL,
       data TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      revision INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE INDEX IF NOT EXISTS drawings_updated_at_idx
     ON drawings(updated_at DESC, created_at DESC);
   `);
 
+  const columns = db.query("PRAGMA table_info(drawings)").all() as Array<{ name: string }>;
+  if (!columns.some((column) => column.name === "revision")) {
+    db.exec("ALTER TABLE drawings ADD COLUMN revision INTEGER NOT NULL DEFAULT 0");
+  }
+
   const listQuery = db.query(`
     SELECT
       id,
       title,
       created_at AS createdAt,
-      updated_at AS updatedAt
+      updated_at AS updatedAt,
+      revision
     FROM drawings
     ORDER BY updated_at DESC, created_at DESC
   `);
@@ -93,7 +107,8 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
       title,
       data,
       created_at AS createdAt,
-      updated_at AS updatedAt
+      updated_at AS updatedAt,
+      revision
     FROM drawings
     WHERE id = ?1
   `);
@@ -105,20 +120,38 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
 
   const updateSceneQuery = db.query(`
     UPDATE drawings
-    SET data = ?2, updated_at = CURRENT_TIMESTAMP
+    SET data = ?2, updated_at = CURRENT_TIMESTAMP, revision = revision + 1
     WHERE id = ?1
   `);
 
   const updateTitleQuery = db.query(`
     UPDATE drawings
-    SET title = ?2, updated_at = CURRENT_TIMESTAMP
+    SET title = ?2, updated_at = CURRENT_TIMESTAMP, revision = revision + 1
     WHERE id = ?1
   `);
 
   const updateBothQuery = db.query(`
     UPDATE drawings
-    SET title = ?2, data = ?3, updated_at = CURRENT_TIMESTAMP
+    SET title = ?2, data = ?3, updated_at = CURRENT_TIMESTAMP, revision = revision + 1
     WHERE id = ?1
+  `);
+
+  const updateSceneExpectedQuery = db.query(`
+    UPDATE drawings
+    SET data = ?2, updated_at = CURRENT_TIMESTAMP, revision = revision + 1
+    WHERE id = ?1 AND revision = ?3
+  `);
+
+  const updateTitleExpectedQuery = db.query(`
+    UPDATE drawings
+    SET title = ?2, updated_at = CURRENT_TIMESTAMP, revision = revision + 1
+    WHERE id = ?1 AND revision = ?3
+  `);
+
+  const updateBothExpectedQuery = db.query(`
+    UPDATE drawings
+    SET title = ?2, data = ?3, updated_at = CURRENT_TIMESTAMP, revision = revision + 1
+    WHERE id = ?1 AND revision = ?4
   `);
 
   const deleteQuery = db.query(`
@@ -148,28 +181,50 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
     return getLatestDrawing() ?? createDrawing();
   }
 
-  function updateDrawing(id: string, update: { scene?: ScenePayload; title?: string }): DrawingRecord | null {
-    const existing = getDrawing(id);
-    if (!existing) {
-      return null;
-    }
-
+  function updateDrawing(
+    id: string,
+    update: { scene?: ScenePayload; title?: string; expectedRevision?: number },
+  ): DrawingUpdateResult {
     const hasScene = update.scene !== undefined;
     const hasTitle = update.title !== undefined;
 
     if (!hasScene && !hasTitle) {
-      return existing;
+      const existing = getDrawing(id);
+      return existing ? { ok: true, drawing: existing } : { ok: false, reason: "not_found" };
     }
 
+    let changes: number;
     if (hasScene && hasTitle) {
-      updateBothQuery.run(id, normalizeTitle(update.title), JSON.stringify(update.scene));
+      const title = normalizeTitle(update.title);
+      const scene = JSON.stringify(update.scene);
+      changes =
+        update.expectedRevision === undefined
+          ? Number(updateBothQuery.run(id, title, scene).changes)
+          : Number(updateBothExpectedQuery.run(id, title, scene, update.expectedRevision).changes);
     } else if (hasScene) {
-      updateSceneQuery.run(id, JSON.stringify(update.scene));
+      const scene = JSON.stringify(update.scene);
+      changes =
+        update.expectedRevision === undefined
+          ? Number(updateSceneQuery.run(id, scene).changes)
+          : Number(updateSceneExpectedQuery.run(id, scene, update.expectedRevision).changes);
     } else {
-      updateTitleQuery.run(id, normalizeTitle(update.title));
+      const title = normalizeTitle(update.title);
+      changes =
+        update.expectedRevision === undefined
+          ? Number(updateTitleQuery.run(id, title).changes)
+          : Number(updateTitleExpectedQuery.run(id, title, update.expectedRevision).changes);
     }
 
-    return getDrawing(id);
+    const drawing = getDrawing(id);
+    if (changes > 0 && drawing) {
+      return { ok: true, drawing };
+    }
+
+    if (!drawing) {
+      return { ok: false, reason: "not_found" };
+    }
+
+    return { ok: false, reason: "conflict", drawing };
   }
 
   function deleteDrawing(id: string): { deleted: boolean; next: DrawingMeta | null } {
