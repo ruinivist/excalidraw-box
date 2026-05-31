@@ -7,6 +7,30 @@ No auth to keep things simple - you either run in a private network or put it be
 
 > GPT 5.5 generated
 
+## Tl;dr
+
+When building the image yourself
+
+```
+docker run --rm \
+  -p 127.0.0.1:3000:80 \
+  -e PUBLIC_BASE_URL=http://localhost:3000 \
+  -v "$PWD/excali-box-data:/data" \
+  -v "$PWD/STYLES_GUIDE.md:/config/styles-guide.md:ro" \
+  excali
+```
+
+When pulling from GHCR ( you would want to change the `PUBLIC_BASE_URL` )
+
+```
+docker run --rm \
+  -p 127.0.0.1:3000:80 \
+  -e PUBLIC_BASE_URL=http://localhost:3000 \
+  -v "$PWD/excali-box-data:/data" \
+  -v "$PWD/STYLES_GUIDE.md:/config/styles-guide.md:ro" \
+  ghcr.io/ruinivist/excalidraw-box:latest
+```
+
 ## Pull from GHCR and run
 
 Images are published to:
