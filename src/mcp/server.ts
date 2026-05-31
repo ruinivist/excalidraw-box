@@ -1,4 +1,6 @@
 import { applyPatch, type Operation } from "fast-json-patch";
+import { accessSync, constants, readFileSync, statSync } from "node:fs";
+import { extname, isAbsolute } from "node:path";
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
 import { normalizeScene, normalizeTitle } from "../core/scene";
@@ -35,6 +37,12 @@ type ToolResult = {
   content: Array<{ type: "text"; text: string }>;
 };
 
+type StylesGuideResource = {
+  path: string;
+};
+
+export const DEFAULT_STYLES_GUIDE_PATH = "/config/styles-guide.md";
+
 function trimTrailingSlash(url: string): string {
   return url.replace(/\/+$/, "");
 }
@@ -54,6 +62,50 @@ export function resolvePublicBaseUrl(raw = process.env.PUBLIC_BASE_URL): string 
   }
 
   throw new Error("PUBLIC_BASE_URL must be an absolute http(s) URL");
+}
+
+export function resolveStylesGuidePath(raw = DEFAULT_STYLES_GUIDE_PATH): StylesGuideResource | undefined {
+  const value = raw.trim();
+
+  if (!isAbsolute(value)) {
+    throw new Error("Styles guide path must be an absolute filesystem path");
+  }
+
+  let stats;
+  try {
+    stats = statSync(value);
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      return undefined;
+    }
+
+    throw new Error(
+      error instanceof Error
+        ? `Styles guide path could not be checked: ${error.message}`
+        : "Styles guide path could not be checked",
+    );
+  }
+
+  const extension = extname(value).toLowerCase();
+  if (extension !== ".md" && extension !== ".markdown") {
+    throw new Error("Styles guide path must point to a Markdown file (.md or .markdown)");
+  }
+
+  if (!stats.isFile()) {
+    throw new Error("Styles guide path must point to a regular file");
+  }
+
+  try {
+    accessSync(value, constants.R_OK);
+  } catch (error) {
+    throw new Error(
+      error instanceof Error
+        ? `Styles guide path must point to a readable file: ${error.message}`
+        : "Styles guide path must point to a readable file",
+    );
+  }
+
+  return { path: value };
 }
 
 function drawingUrl(baseUrl: string, id: string): string {
@@ -157,11 +209,36 @@ export function createMcpToolHandlers(store: DrawingStore, publicBaseUrl: string
   };
 }
 
-export function createExcaliMcpHandler(store: DrawingStore, publicBaseUrl: string) {
+export function createExcaliMcpHandler(
+  store: DrawingStore,
+  publicBaseUrl: string,
+  stylesGuide?: StylesGuideResource,
+) {
   const tools = createMcpToolHandlers(store, publicBaseUrl);
 
   return createMcpHandler(
     (server) => {
+      if (stylesGuide) {
+        server.registerResource(
+          "styles-guide",
+          "excali://styles-guide",
+          {
+            title: "Styles Guide",
+            description: "User-provided drawing styles guide for scene generation",
+            mimeType: "text/markdown",
+          },
+          async (uri) => ({
+            contents: [
+              {
+                uri: uri.toString(),
+                mimeType: "text/markdown",
+                text: readFileSync(stylesGuide.path, "utf8"),
+              },
+            ],
+          }),
+        );
+      }
+
       server.registerTool(
         "list_drawings",
         {
@@ -227,7 +304,7 @@ export function createExcaliMcpHandler(store: DrawingStore, publicBaseUrl: strin
 
 export function createMcpServer() {
   const store = createDrawingStore(process.env.DATABASE_PATH);
-  const handler = createExcaliMcpHandler(store, resolvePublicBaseUrl());
+  const handler = createExcaliMcpHandler(store, resolvePublicBaseUrl(), resolveStylesGuidePath());
 
   return {
     port: Number(process.env.MCP_PORT ?? "3001"),
