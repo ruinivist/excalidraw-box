@@ -82,3 +82,14 @@ docker run --rm \
 
 Bind-mounting a different file to `/config/styles-guide.md` overrides the bundled default for that container.
 Local non-container runs are unchanged; if you want a styles guide there, you still need a file at `/config/styles-guide.md`.
+
+## Authentication
+
+By default, the application is protected by basic authentication using Caddy.
+The default credentials are:
+- **Username:** `admin`
+- **Password:** `password`
+
+You can customize these by setting the following environment variables when running the Docker container:
+- `AUTH_USER`: The username for authentication.
+- `AUTH_HASH`: The bcrypt hash of the password. You can generate a bcrypt hash using tools like `htpasswd` or Caddy's built-in `caddy hash-password` command.

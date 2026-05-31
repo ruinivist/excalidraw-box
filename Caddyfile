@@ -4,6 +4,10 @@
 }
 
 :80 {
+  basicauth /* {
+    {$AUTH_USER:admin} {$AUTH_HASH:$2a$14$J3A9qfgJTikjVe.XmDn49OUjOrPiiwAN3.SXbK1tvfef1XzDkIuRm}
+  }
+
   encode zstd gzip
 
   @mcp path /mcp
