@@ -140,30 +140,6 @@ export function useDrawingSession() {
           return;
         }
 
-        const list = await fetchDrawingList();
-        if (version !== loadVersionRef.current) {
-          return;
-        }
-        setDrawings(sortDrawings(list));
-
-        if (list.length === 0) {
-          const created = await requestJson<DrawingResponse>("/api/drawings", { method: "POST" });
-          if (version !== loadVersionRef.current) {
-            return;
-          }
-
-          window.history.replaceState(null, "", `/d/${created.id}`);
-          await loadDrawing(created.id);
-          return;
-        }
-
-        const fallback = list[0];
-        if (fallback && fallback.id !== drawingId) {
-          window.history.replaceState(null, "", `/d/${fallback.id}`);
-          await loadDrawing(fallback.id);
-          return;
-        }
-
         setError(loadError instanceof Error ? loadError.message : "Failed to load drawing");
       } finally {
         if (version === loadVersionRef.current) {
