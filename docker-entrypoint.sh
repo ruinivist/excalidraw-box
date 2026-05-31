@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 
+if [ "${AUTH_HASH:-}" = "\$2a\$14\$J3A9qfgJTikjVe.XmDn49OUjOrPiiwAN3.SXbK1tvfef1XzDkIuRm" ] || [ -z "${AUTH_HASH:-}" ]; then
+  echo "WARNING: Using the default password for basic authentication. It is highly recommended to change it by setting the AUTH_HASH environment variable." >&2
+fi
+
 app_pid=""
 mcp_pid=""
 caddy_pid=""
