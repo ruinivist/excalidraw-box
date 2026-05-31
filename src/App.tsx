@@ -108,6 +108,8 @@ export function App() {
   const loadVersionRef = useRef(0);
   const themeSyncFrameRef = useRef<number | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
+  const loadedUpdatedAtRef = useRef<string | null>(null);
+  const inFlightTitleSaveRef = useRef<Promise<void> | null>(null);
 
   const activeDrawing = useMemo(
     () => drawings.find((drawing) => drawing.id === activeId) ?? null,
@@ -141,6 +143,7 @@ export function App() {
       body: JSON.stringify(nextScene),
     })
       .then((body) => {
+        loadedUpdatedAtRef.current = body.drawing.updatedAt;
         setDrawings((current) => replaceMeta(current, body.drawing));
         if (isManual) {
           setToastMessage("Saved");
@@ -230,6 +233,7 @@ export function App() {
         currentIdRef.current = drawing.id;
         currentTitleRef.current = drawing.title;
         latestSceneRef.current = nextScene;
+        loadedUpdatedAtRef.current = drawing.updatedAt;
 
         setDrawings(sortDrawings(list));
         setActiveId(drawing.id);
@@ -323,18 +327,22 @@ export function App() {
       return;
     }
 
-    try {
-      const body = await requestJson<{ ok: true; drawing: DrawingMeta }>(`/api/drawings/${drawingId}`, {
-        method: "PUT",
-        body: JSON.stringify({ title: currentTitleRef.current }),
-      });
-
+    const promise = requestJson<{ ok: true; drawing: DrawingMeta }>(`/api/drawings/${drawingId}`, {
+      method: "PUT",
+      body: JSON.stringify({ title: currentTitleRef.current }),
+    }).then((body) => {
       currentTitleRef.current = body.drawing.title;
+      loadedUpdatedAtRef.current = body.drawing.updatedAt;
       setActiveTitle(body.drawing.title);
       setDrawings((current) => replaceMeta(current, body.drawing));
-    } catch (renameError) {
+    }).catch((renameError) => {
       setError(renameError instanceof Error ? renameError.message : "Rename failed");
-    }
+    }).finally(() => {
+      inFlightTitleSaveRef.current = null;
+    });
+
+    inFlightTitleSaveRef.current = promise;
+    await promise;
   }, []);
 
   const syncThemeTokens = useCallback(() => {
@@ -410,6 +418,32 @@ export function App() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      void refreshList();
+    }, 5000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [refreshList]);
+
+  useEffect(() => {
+    if (
+      activeDrawing &&
+      loadedUpdatedAtRef.current &&
+      activeDrawing.updatedAt > loadedUpdatedAtRef.current &&
+      !inFlightSaveRef.current &&
+      !inFlightTitleSaveRef.current
+    ) {
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      void loadDrawing(activeDrawing.id);
+    }
+  }, [activeDrawing, loadDrawing]);
 
   useEffect(() => {
     if (!scene || loading) {
