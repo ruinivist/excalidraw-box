@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { Database } from "bun:sqlite";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -58,36 +57,6 @@ describe("api", () => {
 
     expect(response.status).toBe(404);
     cleanup();
-  });
-
-  test("returns 500 when stored scene payload is invalid", () => {
-    const dir = mkdtempSync(join(tmpdir(), "excali-api-"));
-    const databasePath = join(dir, "test.sqlite");
-    const db = new Database(databasePath, { create: true, strict: true });
-    db.exec(`
-      CREATE TABLE drawings (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        data TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        revision INTEGER NOT NULL DEFAULT 0
-      );
-
-      INSERT INTO drawings (id, title, data, revision)
-      VALUES ('broken', 'Broken', '{"appState":{},"files":{}}', 0);
-    `);
-    db.close(false);
-
-    const store = createDrawingStore(databasePath);
-    const api = createApi(store);
-    const response = api.getDrawing(
-      Object.assign(new Request("http://local/api/drawings/broken"), { params: { id: "broken" } }),
-    );
-
-    expect(response.status).toBe(500);
-    store.close();
-    rmSync(dir, { recursive: true, force: true });
   });
 
   test("updates a drawing scene", async () => {

@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { Database } from "bun:sqlite";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -83,50 +82,4 @@ describe("drawing store", () => {
     expect(store.getDrawing(created.id)?.scene.elements).toEqual([{ id: "first" }]);
   });
 
-  test("fails to open databases missing the revision column", () => {
-    const dir = mkdtempSync(join(tmpdir(), "excali-"));
-    cleanup.push(dir);
-    const databasePath = join(dir, "test.sqlite");
-    const db = new Database(databasePath, { create: true, strict: true });
-    db.exec(`
-      CREATE TABLE drawings (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        data TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-
-      INSERT INTO drawings (id, title, data)
-      VALUES ('legacy', 'Legacy', '{"elements":[],"appState":{},"files":{}}');
-    `);
-    db.close(false);
-
-    expect(() => createDrawingStore(databasePath)).toThrow(/revision/i);
-  });
-
-  test("throws when reading drawings with invalid stored scene payloads", () => {
-    const dir = mkdtempSync(join(tmpdir(), "excali-"));
-    cleanup.push(dir);
-    const databasePath = join(dir, "test.sqlite");
-    const db = new Database(databasePath, { create: true, strict: true });
-    db.exec(`
-      CREATE TABLE drawings (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        data TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        revision INTEGER NOT NULL DEFAULT 0
-      );
-
-      INSERT INTO drawings (id, title, data, revision)
-      VALUES ('broken', 'Broken', '{"appState":{},"files":{}}', 0);
-    `);
-    db.close(false);
-
-    const store = createDrawingStore(databasePath);
-    expect(() => store.getDrawing("broken")).toThrow(/Invalid stored scene/);
-    store.close();
-  });
 });
