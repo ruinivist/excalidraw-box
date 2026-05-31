@@ -190,32 +190,46 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
   ): DrawingUpdateResult {
     const hasScene = update.scene !== undefined;
     const hasTitle = update.title !== undefined;
+    const existingRow = getQuery.get(id) as DrawingRow | null | undefined;
 
+    if (!existingRow) {
+      return { ok: false, reason: "not_found" };
+    }
+
+    const existing = readRow(existingRow)!;
     if (!hasScene && !hasTitle) {
-      const existing = getDrawing(id);
-      return existing ? { ok: true, drawing: existing } : { ok: false, reason: "not_found" };
+      return { ok: true, drawing: existing };
+    }
+
+    const nextTitle = hasTitle ? normalizeTitle(update.title) : existingRow.title;
+    const nextScene = hasScene ? JSON.stringify(update.scene) : existingRow.data;
+    const titleChanged = nextTitle !== existingRow.title;
+    const sceneChanged = nextScene !== existingRow.data;
+
+    if (!titleChanged && !sceneChanged) {
+      return { ok: true, drawing: existing };
+    }
+
+    if (update.expectedRevision !== undefined && update.expectedRevision !== existingRow.revision) {
+      return { ok: false, reason: "conflict", drawing: existing };
     }
 
     let changes: number;
-    if (hasScene && hasTitle) {
-      const title = normalizeTitle(update.title);
-      const scene = JSON.stringify(update.scene);
+    if (sceneChanged && titleChanged) {
       changes =
         update.expectedRevision === undefined
-          ? Number(updateBothQuery.run(id, title, scene).changes)
-          : Number(updateBothExpectedQuery.run(id, title, scene, update.expectedRevision).changes);
-    } else if (hasScene) {
-      const scene = JSON.stringify(update.scene);
+          ? Number(updateBothQuery.run(id, nextTitle, nextScene).changes)
+          : Number(updateBothExpectedQuery.run(id, nextTitle, nextScene, update.expectedRevision).changes);
+    } else if (sceneChanged) {
       changes =
         update.expectedRevision === undefined
-          ? Number(updateSceneQuery.run(id, scene).changes)
-          : Number(updateSceneExpectedQuery.run(id, scene, update.expectedRevision).changes);
+          ? Number(updateSceneQuery.run(id, nextScene).changes)
+          : Number(updateSceneExpectedQuery.run(id, nextScene, update.expectedRevision).changes);
     } else {
-      const title = normalizeTitle(update.title);
       changes =
         update.expectedRevision === undefined
-          ? Number(updateTitleQuery.run(id, title).changes)
-          : Number(updateTitleExpectedQuery.run(id, title, update.expectedRevision).changes);
+          ? Number(updateTitleQuery.run(id, nextTitle).changes)
+          : Number(updateTitleExpectedQuery.run(id, nextTitle, update.expectedRevision).changes);
     }
 
     const drawing = getDrawing(id);

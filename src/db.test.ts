@@ -82,4 +82,57 @@ describe("drawing store", () => {
     expect(store.getDrawing(created.id)?.scene.elements).toEqual([{ id: "first" }]);
   });
 
+  test("keeps the revision unchanged when the scene is already stored", () => {
+    const store = createTempStore();
+    const created = store.createDrawing();
+    const scene = {
+      elements: [{ id: "same" }],
+      appState: {},
+      files: {},
+    };
+
+    const first = store.updateDrawing(created.id, { scene });
+    expect(first.ok ? first.drawing.revision : null).toBe(1);
+
+    const repeated = store.updateDrawing(created.id, { scene });
+    expect(repeated.ok).toBe(true);
+    expect(repeated.ok ? repeated.drawing.revision : null).toBe(1);
+    expect(store.getDrawing(created.id)?.revision).toBe(1);
+  });
+
+  test("accepts stale expected revisions when the scene is already stored", () => {
+    const store = createTempStore();
+    const created = store.createDrawing();
+    const scene = {
+      elements: [{ id: "same" }],
+      appState: {},
+      files: {},
+    };
+
+    const first = store.updateDrawing(created.id, { expectedRevision: 0, scene });
+    expect(first.ok ? first.drawing.revision : null).toBe(1);
+
+    const repeated = store.updateDrawing(created.id, { expectedRevision: 0, scene });
+    expect(repeated.ok).toBe(true);
+    expect(repeated.ok ? repeated.drawing.revision : null).toBe(1);
+    expect(store.getDrawing(created.id)?.scene.elements).toEqual([{ id: "same" }]);
+  });
+
+  test("increments the revision when the title changes but the scene does not", () => {
+    const store = createTempStore();
+    const created = store.createDrawing();
+    const scene = {
+      elements: [{ id: "same" }],
+      appState: {},
+      files: {},
+    };
+
+    const first = store.updateDrawing(created.id, { expectedRevision: 0, scene });
+    expect(first.ok ? first.drawing.revision : null).toBe(1);
+
+    const renamed = store.updateDrawing(created.id, { expectedRevision: 1, title: "Renamed", scene });
+    expect(renamed.ok).toBe(true);
+    expect(renamed.ok ? renamed.drawing.title : null).toBe("Renamed");
+    expect(renamed.ok ? renamed.drawing.revision : null).toBe(2);
+  });
 });

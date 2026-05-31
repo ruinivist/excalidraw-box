@@ -84,6 +84,46 @@ describe("api", () => {
     cleanup();
   });
 
+  test("does not increment revisions for equivalent normalized scenes", async () => {
+    const { api, cleanup } = withApi();
+    const created = await api.createDrawing().json();
+
+    await api.updateDrawing(
+      Object.assign(
+        new Request(`http://local/api/drawings/${created.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            elements: [{ id: "shape" }],
+            appState: { gridSize: 20 },
+            files: {},
+            expectedRevision: 0,
+          }),
+        }),
+        { params: { id: created.id } },
+      ),
+    );
+
+    const response = await api.updateDrawing(
+      Object.assign(
+        new Request(`http://local/api/drawings/${created.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            elements: [{ id: "shape" }],
+            appState: { gridSize: 20, selectedElementIds: { shape: true } },
+            files: {},
+            expectedRevision: 0,
+          }),
+        }),
+        { params: { id: created.id } },
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.drawing.revision).toBe(1);
+    cleanup();
+  });
+
   test("updates scene and title with a matching expected revision", async () => {
     const { api, cleanup } = withApi();
     const created = await api.createDrawing().json();

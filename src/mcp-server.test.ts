@@ -95,6 +95,18 @@ describe("mcp tool handlers", () => {
     expect(store.getDrawing(result.id)?.scene).toEqual(nextScene);
   });
 
+  test("replace_drawing keeps the revision when the scene is already stored", () => {
+    const { store, tools } = createTempTools();
+    const scene = testScene();
+    const result = tools.create_drawing({ title: "replace noop", scene });
+
+    const replaced = tools.replace_drawing({ id: result.id, scene });
+
+    expect(replaced.revision).toBe(1);
+    expect(store.getDrawing(result.id)?.revision).toBe(1);
+    expect(store.getDrawing(result.id)?.scene).toEqual(scene);
+  });
+
   test("patch_drawing replaces an element property and removes an element", () => {
     const { store, tools } = createTempTools();
     const result = tools.create_drawing({ title: "patch", scene: testScene() });
