@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDrawingStore, type DrawingStore } from "./db";
-import { createServer } from "./server";
+import { createServer } from "./http-server";
 
 const cleanup: string[] = [];
 const stores: DrawingStore[] = [];

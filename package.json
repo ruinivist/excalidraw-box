@@ -3,11 +3,11 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun --hot src/dev-server.tsx",
+    "dev": "bun --hot src/server/dev-server.tsx",
     "build": "rm -rf dist && bun run build:client && bun run build:server && bun run build:mcp",
-    "build:client": "bun build --target=browser --production --outdir ./dist/public ./src/index.html",
-    "build:server": "mkdir -p ./dist/server && bun build --target=bun --production --outfile ./dist/server/server.js ./src/server.tsx",
-    "build:mcp": "mkdir -p ./dist/mcp && bun build --target=bun --production --outfile ./dist/mcp/mcp-server.js ./src/mcp-server.ts",
+    "build:client": "bun build --target=browser --production --outdir ./dist/public ./src/client/index.html",
+    "build:server": "mkdir -p ./dist/server && bun build --target=bun --production --outfile ./dist/server/server.js ./src/server/http-server.tsx",
+    "build:mcp": "mkdir -p ./dist/mcp && bun build --target=bun --production --outfile ./dist/mcp/mcp-server.js ./src/mcp/server.ts",
     "start": "DATABASE_PATH=./data/excalidraw.sqlite bun ./dist/server/server.js",
     "test": "bun test",
     "typecheck": "tsc --noEmit"

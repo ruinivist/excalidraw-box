@@ -1,6 +1,6 @@
 import { type DrawingStore } from "./db";
-import { type DrawingMeta } from "./shared";
-import { HttpError, normalizeTitle, parseJsonBody, parseSceneText } from "./scene";
+import { type DrawingMeta } from "../core/shared";
+import { HttpError, normalizeTitle, parseJsonBody, parseSceneText } from "../core/scene";
 
 type RouteRequest = Request & {
   params?: Record<string, string>;
