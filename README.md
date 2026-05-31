@@ -16,7 +16,6 @@ docker run --rm \
   -p 127.0.0.1:3000:80 \
   -e PUBLIC_BASE_URL=http://localhost:3000 \
   -v "$PWD/excali-box-data:/data" \
-  -v "$PWD/STYLES_GUIDE.md:/config/styles-guide.md:ro" \
   excali
 ```
 
@@ -27,7 +26,6 @@ docker run --rm \
   -p 127.0.0.1:3000:80 \
   -e PUBLIC_BASE_URL=http://localhost:3000 \
   -v "$PWD/excali-box-data:/data" \
-  -v "$PWD/STYLES_GUIDE.md:/config/styles-guide.md:ro" \
   ghcr.io/ruinivist/excalidraw-box:latest
 ```
 
@@ -70,7 +68,8 @@ This will make the data persistent in the `excali-box-data` folder in the curren
 ## Optional MCP styles guide resource
 
 The MCP server can optionally expose one extra read-only resource at `excali://styles-guide`. This file is then
-discoverable as an MCP resource.
+discoverable as an MCP resource. Container images already include the repo `STYLES_GUIDE.md` at
+`/config/styles-guide.md`, so the default guide is exposed automatically in Docker/GHCR.
 
 ```bash
 docker run --rm \
@@ -81,4 +80,5 @@ docker run --rm \
   ghcr.io/ruinivist/excalidraw-box:latest
 ```
 
-Repo-root `STYLES_GUIDE.md` which is what I wrote for myself is not used at all unless you explicitly mount it to `/config/styles-guide.md`.
+Bind-mounting a different file to `/config/styles-guide.md` overrides the bundled default for that container.
+Local non-container runs are unchanged; if you want a styles guide there, you still need a file at `/config/styles-guide.md`.

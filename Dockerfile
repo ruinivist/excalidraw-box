@@ -19,14 +19,17 @@ ENV MCP_HOST=127.0.0.1
 ENV MCP_PORT=3001
 ENV DATABASE_PATH=/data/excalidraw.sqlite
 
+RUN mkdir -p /config /data
+
 COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
 COPY --from=build /app/dist/public /srv/public
 COPY --from=build /app/dist/server /app/dist/server
 COPY --from=build /app/dist/mcp /app/dist/mcp
 COPY Caddyfile /etc/caddy/Caddyfile
+COPY STYLES_GUIDE.md /config/styles-guide.md
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN mkdir -p /data && chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 VOLUME ["/data"]
 
