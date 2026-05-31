@@ -15,7 +15,7 @@ Images are published to:
 
 ```bash
 docker pull ghcr.io/ruinivist/excalidraw-box:latest
-docker run --rm -p 127.0.0.1:3000:80 -v "$PWD/excali-box-data:/data" ghcr.io/ruinivist/excalidraw-box:latest
+docker run --rm -p 127.0.0.1:3000:80 -e PUBLIC_BASE_URL=http://localhost:3000 -v "$PWD/excali-box-data:/data" ghcr.io/ruinivist/excalidraw-box:latest
 ```
 
 ## Run locally
@@ -38,7 +38,7 @@ bun run typecheck
 
 ```bash
 docker build -t excali .
-docker run --rm -p 127.0.0.1:3000:80 -v "$PWD/excali-box-data:/data" excali
+docker run --rm -p 127.0.0.1:3000:80 -e PUBLIC_BASE_URL=http://localhost:3000 -v "$PWD/excali-box-data:/data" excali
 ```
 
-This will make the data persistent in the `excali-box-data` folder in the current directory, with Caddy serving the browser build on `localhost:3000`
+This will make the data persistent in the `excali-box-data` folder in the current directory, with Caddy serving the browser build on `localhost:3000`. `PUBLIC_BASE_URL` is required so MCP tools can return drawing URLs with the public browser origin. You would want it to be the same url you use to access the app in the browser - in case you reverse proxy or use a tailscale alias etc.

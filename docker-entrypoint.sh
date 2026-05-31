@@ -1,11 +1,12 @@
 #!/bin/sh
 set -eu
 
-bun_pid=""
+app_pid=""
+mcp_pid=""
 caddy_pid=""
 
 stop_children() {
-  for pid in "$bun_pid" "$caddy_pid"; do
+  for pid in "$app_pid" "$mcp_pid" "$caddy_pid"; do
     if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
       kill "$pid" 2>/dev/null || true
     fi
@@ -15,7 +16,10 @@ stop_children() {
 trap 'stop_children' INT TERM
 
 bun /app/dist/server/server.js &
-bun_pid=$!
+app_pid=$!
+
+bun /app/dist/mcp/mcp-server.js &
+mcp_pid=$!
 
 caddy run --config /etc/caddy/Caddyfile --adapter caddyfile &
 caddy_pid=$!
@@ -23,8 +27,13 @@ caddy_pid=$!
 exit_code=0
 
 while :; do
-  if ! kill -0 "$bun_pid" 2>/dev/null; then
-    wait "$bun_pid" || exit_code=$?
+  if ! kill -0 "$app_pid" 2>/dev/null; then
+    wait "$app_pid" || exit_code=$?
+    break
+  fi
+
+  if ! kill -0 "$mcp_pid" 2>/dev/null; then
+    wait "$mcp_pid" || exit_code=$?
     break
   fi
 
@@ -37,7 +46,8 @@ while :; do
 done
 
 stop_children
-wait "$bun_pid" 2>/dev/null || true
+wait "$app_pid" 2>/dev/null || true
+wait "$mcp_pid" 2>/dev/null || true
 wait "$caddy_pid" 2>/dev/null || true
 
 exit "$exit_code"

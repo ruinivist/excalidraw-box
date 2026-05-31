@@ -15,11 +15,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HOST=127.0.0.1
 ENV PORT=3000
+ENV MCP_HOST=127.0.0.1
+ENV MCP_PORT=3001
 ENV DATABASE_PATH=/data/excalidraw.sqlite
 
 COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
 COPY --from=build /app/dist/public /srv/public
 COPY --from=build /app/dist/server /app/dist/server
+COPY --from=build /app/dist/mcp /app/dist/mcp
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 

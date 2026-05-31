@@ -4,17 +4,22 @@
   "private": true,
   "scripts": {
     "dev": "bun --hot src/dev-server.tsx",
-    "build": "rm -rf dist && bun run build:client && bun run build:server",
+    "build": "rm -rf dist && bun run build:client && bun run build:server && bun run build:mcp",
     "build:client": "bun build --target=browser --production --outdir ./dist/public ./src/index.html",
     "build:server": "mkdir -p ./dist/server && bun build --target=bun --production --outfile ./dist/server/server.js ./src/server.tsx",
+    "build:mcp": "mkdir -p ./dist/mcp && bun build --target=bun --production --outfile ./dist/mcp/mcp-server.js ./src/mcp-server.ts",
     "start": "DATABASE_PATH=./data/excalidraw.sqlite bun ./dist/server/server.js",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "fast-json-patch": "^3.1.1",
+    "mcp-handler": "^1.1.0",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",
