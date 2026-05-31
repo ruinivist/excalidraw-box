@@ -3,7 +3,6 @@
 Private self-hosted Excalidraw with Bun, Caddy, and SQLite.
 
 This is bare wrapper around the excalidraw packages that adds autosave and disk-persistence.
-No auth to keep things simple - you either run in a private network or put it behind Caddy auth or similar solutions.
 
 > GPT 5.5 generated
 
@@ -90,6 +89,21 @@ The default credentials are:
 - **Username:** `admin`
 - **Password:** `password`
 
-You can customize these by setting the following environment variables when running the Docker container:
-- `AUTH_USER`: The username for authentication.
-- `AUTH_HASH`: The bcrypt hash of the password. You can generate a bcrypt hash using tools like `htpasswd` or Caddy's built-in `caddy hash-password` command.
+You can customize these by setting the following environment variables when running the Docker container.
+The password must be hashed using `bcrypt` since Caddy requires hashed passwords for basicauth.
+
+**Intended flow to set a custom password:**
+1. Generate a bcrypt hash of your desired password. For example, using a container to run Caddy's hash-password utility:
+   ```bash
+   docker run --rm caddy:2-alpine caddy hash-password --plaintext your_secure_password
+   ```
+2. Pass the generated hash and your desired username via environment variables when running the app:
+   ```bash
+   docker run --rm \
+     -p 127.0.0.1:3000:80 \
+     -e PUBLIC_BASE_URL=http://localhost:3000 \
+     -e AUTH_USER=myuser \
+     -e AUTH_HASH='\$2a\$14\$exampleHash...' \
+     -v "$PWD/excali-box-data:/data" \
+     ghcr.io/ruinivist/excalidraw-box:latest
+   ```
