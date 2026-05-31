@@ -83,7 +83,7 @@ describe("drawing store", () => {
     expect(store.getDrawing(created.id)?.scene.elements).toEqual([{ id: "first" }]);
   });
 
-  test("migrates existing databases to include revision", () => {
+  test("fails to open databases missing the revision column", () => {
     const dir = mkdtempSync(join(tmpdir(), "excali-"));
     cleanup.push(dir);
     const databasePath = join(dir, "test.sqlite");
@@ -102,10 +102,31 @@ describe("drawing store", () => {
     `);
     db.close(false);
 
-    const store = createDrawingStore(databasePath);
-    expect(store.getDrawing("legacy")?.revision).toBe(0);
+    expect(() => createDrawingStore(databasePath)).toThrow(/revision/i);
+  });
 
-    const updated = store.updateDrawing("legacy", { title: "Migrated" });
-    expect(updated.ok ? updated.drawing.revision : null).toBe(1);
+  test("throws when reading drawings with invalid stored scene payloads", () => {
+    const dir = mkdtempSync(join(tmpdir(), "excali-"));
+    cleanup.push(dir);
+    const databasePath = join(dir, "test.sqlite");
+    const db = new Database(databasePath, { create: true, strict: true });
+    db.exec(`
+      CREATE TABLE drawings (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        data TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        revision INTEGER NOT NULL DEFAULT 0
+      );
+
+      INSERT INTO drawings (id, title, data, revision)
+      VALUES ('broken', 'Broken', '{"appState":{},"files":{}}', 0);
+    `);
+    db.close(false);
+
+    const store = createDrawingStore(databasePath);
+    expect(() => store.getDrawing("broken")).toThrow(/Invalid stored scene/);
+    store.close();
   });
 });

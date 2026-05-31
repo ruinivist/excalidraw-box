@@ -87,11 +87,3 @@ export function parseJsonBody<T = unknown>(text: string): T {
 export function parseSceneText(text: string): ScenePayload {
   return normalizeScene(parseJsonBody(text));
 }
-
-export function coerceStoredScene(input: unknown): ScenePayload {
-  try {
-    return normalizeScene(input);
-  } catch {
-    return emptyScene();
-  }
-}

@@ -68,17 +68,21 @@ export function createApi(store: DrawingStore) {
     },
 
     getDrawing(request: RouteRequest) {
-      const id = request.params?.id;
-      const drawing = id ? store.getDrawing(id) : null;
+      try {
+        const id = request.params?.id;
+        const drawing = id ? store.getDrawing(id) : null;
 
-      if (!drawing) {
-        return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+        if (!drawing) {
+          return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+        }
+
+        return json({
+          ...toMeta(drawing),
+          ...drawing.scene,
+        });
+      } catch (error) {
+        return errorResponse(error);
       }
-
-      return json({
-        ...toMeta(drawing),
-        ...drawing.scene,
-      });
     },
 
     async updateDrawing(request: RouteRequest) {

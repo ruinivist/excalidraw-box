@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DEFAULT_TITLE, type DrawingMeta, type DrawingRecord, type ScenePayload } from "./shared";
-import { coerceStoredScene, emptyScene, normalizeTitle } from "./scene";
+import { emptyScene, normalizeScene, normalizeTitle } from "./scene";
 
 type DrawingRow = {
   id: string;
@@ -59,9 +59,17 @@ function readRow(row: DrawingRow | null | undefined): DrawingRecord | null {
     return null;
   }
 
+  let scene: ScenePayload;
+  try {
+    scene = normalizeScene(JSON.parse(row.data));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown scene parsing error";
+    throw new Error(`Invalid stored scene for drawing ${row.id}: ${message}`);
+  }
+
   return {
     ...readMeta(row)!,
-    scene: coerceStoredScene(JSON.parse(row.data)),
+    scene,
   };
 }
 
@@ -84,11 +92,6 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
     CREATE INDEX IF NOT EXISTS drawings_updated_at_idx
     ON drawings(updated_at DESC, created_at DESC);
   `);
-
-  const columns = db.query("PRAGMA table_info(drawings)").all() as Array<{ name: string }>;
-  if (!columns.some((column) => column.name === "revision")) {
-    db.exec("ALTER TABLE drawings ADD COLUMN revision INTEGER NOT NULL DEFAULT 0");
-  }
 
   const listQuery = db.query(`
     SELECT
