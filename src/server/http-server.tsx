@@ -29,6 +29,13 @@ export function createServer(options: CreateServerOptions = {}) {
         PUT: (request: Request & { params: Record<string, string> }) => api.updateDrawing(request),
         DELETE: (request: Request & { params: Record<string, string> }) => api.deleteDrawing(request),
       },
+      "/api/public/drawings/:slug": {
+        GET: (request: Request & { params: Record<string, string> }) => api.getPublicDrawing(request),
+      },
+      "/api/drawings/:id/publication": {
+        GET: (request: Request & { params: Record<string, string> }) => api.getDrawingPublication(request),
+        PUT: (request: Request & { params: Record<string, string> }) => api.updateDrawingPublication(request),
+      },
     },
     fetch: (_request: Request) => Response.json({ ok: false, error: "Not found" }, { status: 404 }),
   } satisfies Parameters<typeof Bun.serve>[0];

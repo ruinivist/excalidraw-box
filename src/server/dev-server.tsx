@@ -9,6 +9,7 @@ export function createDevServer() {
     routes: {
       ...server.routes,
       "/d/:id": index,
+      "/p/:slug": index,
     },
   } satisfies Parameters<typeof Bun.serve>[0];
 }

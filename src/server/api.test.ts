@@ -205,4 +205,210 @@ describe("api", () => {
     expect(stored.elements).toEqual([{ id: "server" }]);
     cleanup();
   });
+
+  test("returns disabled and enabled publication shapes", async () => {
+    const { api, cleanup } = withApi();
+    const created = await api.createDrawing().json();
+
+    const disabled = await api.getDrawingPublication(
+      Object.assign(new Request(`http://local/api/drawings/${created.id}/publication`), { params: { id: created.id } }),
+    );
+    expect(disabled.status).toBe(200);
+    expect(await disabled.json()).toEqual({ enabled: false });
+
+    const publish = await api.updateDrawingPublication(
+      Object.assign(
+        new Request(`http://local/api/drawings/${created.id}/publication`, {
+          method: "PUT",
+          body: JSON.stringify({
+            enabled: true,
+            slug: "Flow Chart",
+          }),
+        }),
+        { params: { id: created.id } },
+      ),
+    );
+
+    expect(publish.status).toBe(200);
+    expect(await publish.json()).toEqual({
+      enabled: true,
+      slug: "flow-chart",
+    });
+
+    const enabled = await api.getDrawingPublication(
+      Object.assign(new Request(`http://local/api/drawings/${created.id}/publication`), { params: { id: created.id } }),
+    );
+    expect(await enabled.json()).toEqual({
+      enabled: true,
+      slug: "flow-chart",
+    });
+    cleanup();
+  });
+
+  test("publishes, renames, and disables publications", async () => {
+    const { api, cleanup } = withApi();
+    const created = await api.createDrawing().json();
+
+    await api.updateDrawingPublication(
+      Object.assign(
+        new Request(`http://local/api/drawings/${created.id}/publication`, {
+          method: "PUT",
+          body: JSON.stringify({
+            enabled: true,
+            slug: "first",
+          }),
+        }),
+        { params: { id: created.id } },
+      ),
+    );
+
+    const renamed = await api.updateDrawingPublication(
+      Object.assign(
+        new Request(`http://local/api/drawings/${created.id}/publication`, {
+          method: "PUT",
+          body: JSON.stringify({
+            enabled: true,
+            slug: "second",
+          }),
+        }),
+        { params: { id: created.id } },
+      ),
+    );
+
+    expect(renamed.status).toBe(200);
+    expect(await renamed.json()).toEqual({
+      enabled: true,
+      slug: "second",
+    });
+
+    const disable = await api.updateDrawingPublication(
+      Object.assign(
+        new Request(`http://local/api/drawings/${created.id}/publication`, {
+          method: "PUT",
+          body: JSON.stringify({ enabled: false }),
+        }),
+        { params: { id: created.id } },
+      ),
+    );
+
+    expect(disable.status).toBe(200);
+    expect(await disable.json()).toEqual({ enabled: false });
+    cleanup();
+  });
+
+  test("returns 400 for invalid publication slugs", async () => {
+    const { api, cleanup } = withApi();
+    const created = await api.createDrawing().json();
+
+    const response = await api.updateDrawingPublication(
+      Object.assign(
+        new Request(`http://local/api/drawings/${created.id}/publication`, {
+          method: "PUT",
+          body: JSON.stringify({
+            enabled: true,
+            slug: "API",
+          }),
+        }),
+        { params: { id: created.id } },
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      ok: false,
+      error: "slug is reserved",
+    });
+    cleanup();
+  });
+
+  test("returns 409 for publication slug collisions", async () => {
+    const { api, cleanup } = withApi();
+    const first = await api.createDrawing().json();
+    const second = await api.createDrawing().json();
+
+    await api.updateDrawingPublication(
+      Object.assign(
+        new Request(`http://local/api/drawings/${first.id}/publication`, {
+          method: "PUT",
+          body: JSON.stringify({
+            enabled: true,
+            slug: "shared",
+          }),
+        }),
+        { params: { id: first.id } },
+      ),
+    );
+
+    const response = await api.updateDrawingPublication(
+      Object.assign(
+        new Request(`http://local/api/drawings/${second.id}/publication`, {
+          method: "PUT",
+          body: JSON.stringify({
+            enabled: true,
+            slug: "shared",
+          }),
+        }),
+        { params: { id: second.id } },
+      ),
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      ok: false,
+      error: "Published slug already exists",
+    });
+    cleanup();
+  });
+
+  test("returns public scene data for enabled slugs and 404 otherwise", async () => {
+    const { api, cleanup } = withApi();
+    const created = await api.createDrawing().json();
+
+    await api.updateDrawing(
+      Object.assign(
+        new Request(`http://local/api/drawings/${created.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            title: "Public Flow",
+            elements: [{ id: "shape" }],
+            appState: { theme: "dark" },
+            files: {},
+            expectedRevision: 0,
+          }),
+        }),
+        { params: { id: created.id } },
+      ),
+    );
+
+    await api.updateDrawingPublication(
+      Object.assign(
+        new Request(`http://local/api/drawings/${created.id}/publication`, {
+          method: "PUT",
+          body: JSON.stringify({
+            enabled: true,
+            slug: "public-flow",
+          }),
+        }),
+        { params: { id: created.id } },
+      ),
+    );
+
+    const enabled = await api.getPublicDrawing(
+      Object.assign(new Request("http://local/api/public/drawings/public-flow"), { params: { slug: "public-flow" } }),
+    );
+
+    expect(enabled.status).toBe(200);
+    expect(await enabled.json()).toEqual({
+      title: "Public Flow",
+      elements: [{ id: "shape" }],
+      appState: { theme: "dark" },
+      files: {},
+    });
+
+    const missing = await api.getPublicDrawing(
+      Object.assign(new Request("http://local/api/public/drawings/missing"), { params: { slug: "missing" } }),
+    );
+    expect(missing.status).toBe(404);
+    cleanup();
+  });
 });

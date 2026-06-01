@@ -4,6 +4,19 @@ export type ScenePayload = {
   files: Record<string, unknown>;
 };
 
+export type DrawingPublication =
+  | {
+      enabled: false;
+    }
+  | {
+      enabled: true;
+      slug: string;
+    };
+
+export type PublicDrawing = {
+  title: string;
+} & ScenePayload;
+
 export type DrawingMeta = {
   id: string;
   title: string;

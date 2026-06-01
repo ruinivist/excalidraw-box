@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_TITLE, type DrawingMeta, type ScenePayload } from "../../core/shared";
+import { DEFAULT_TITLE, type DrawingMeta, type DrawingPublication, type ScenePayload } from "../../core/shared";
 
 type DrawingResponse = DrawingMeta & ScenePayload;
+type PublicationResponse = DrawingPublication;
 type ApiErrorBody = { ok: false; error?: string; drawing?: DrawingMeta };
 type UpdateResponse = { ok: true; drawing: DrawingMeta };
 
@@ -70,10 +71,14 @@ export function useDrawingSession() {
   const [error, setError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [editorReloadNonce, setEditorReloadNonce] = useState(0);
+  const [publication, setPublication] = useState<DrawingPublication>({ enabled: false });
+  const [publicationSlug, setPublicationSlugState] = useState("");
+  const [publicationBusy, setPublicationBusy] = useState(false);
 
   const currentIdRef = useRef<string | null>(activeId);
   const currentTitleRef = useRef(activeTitle);
   const latestSceneRef = useRef<ScenePayload | null>(null);
+  const publicationEnabledRef = useRef(false);
   const ignoreChangeRef = useRef(false);
   const saveTimeoutRef = useRef<number | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
@@ -106,6 +111,18 @@ export function useDrawingSession() {
     return list;
   }, []);
 
+  const applyPublication = useCallback((nextPublication: DrawingPublication) => {
+    publicationEnabledRef.current = nextPublication.enabled;
+    setPublication(nextPublication);
+
+    if (nextPublication.enabled) {
+      setPublicationSlugState(nextPublication.slug);
+      return;
+    }
+
+    setPublicationSlugState("");
+  }, []);
+
   const loadDrawing = useCallback(
     async (drawingId: string) => {
       const version = ++loadVersionRef.current;
@@ -113,9 +130,10 @@ export function useDrawingSession() {
       setError(null);
 
       try {
-        const [list, drawing] = await Promise.all([
+        const [list, drawing, nextPublication] = await Promise.all([
           requestJson<DrawingMeta[]>("/api/drawings", { method: "GET" }),
           requestJson<DrawingResponse>(`/api/drawings/${drawingId}`, { method: "GET" }),
+          requestJson<PublicationResponse>(`/api/drawings/${drawingId}/publication`, { method: "GET" }),
         ]);
 
         if (version !== loadVersionRef.current) {
@@ -134,6 +152,7 @@ export function useDrawingSession() {
         setActiveId(drawing.id);
         setActiveTitleState(drawing.title);
         setScene(nextScene);
+        applyPublication(nextPublication);
         setEditorReloadNonce((current) => current + 1);
       } catch (loadError) {
         if (version !== loadVersionRef.current) {
@@ -147,7 +166,7 @@ export function useDrawingSession() {
         }
       }
     },
-    [],
+    [applyPublication],
   );
 
   const saveScene = useCallback(
@@ -350,6 +369,72 @@ export function useDrawingSession() {
     [navigateToDrawing],
   );
 
+  const setPublicationSlug = useCallback((slug: string) => {
+    setPublicationSlugState(slug);
+  }, []);
+
+  const publishPublication = useCallback(async () => {
+    const drawingId = currentIdRef.current;
+    if (!drawingId) {
+      return;
+    }
+
+    setPublicationBusy(true);
+    setError(null);
+    showToast("Publishing...");
+
+    try {
+      await flushPendingSave();
+
+      const currentDrawingId = currentIdRef.current;
+      if (!currentDrawingId) {
+        return;
+      }
+
+      const body = await requestJson<PublicationResponse>(`/api/drawings/${currentDrawingId}/publication`, {
+        method: "PUT",
+        body: JSON.stringify({
+          enabled: true,
+          slug: publicationSlug,
+        }),
+      });
+
+      applyPublication(body);
+      showToast("Published", 2000);
+    } catch (publishError) {
+      setError(publishError instanceof Error ? publishError.message : "Publish failed");
+      showToast("Publish failed", 2000);
+    } finally {
+      setPublicationBusy(false);
+    }
+  }, [applyPublication, flushPendingSave, publicationSlug, showToast]);
+
+  const disablePublication = useCallback(async () => {
+    const drawingId = currentIdRef.current;
+    if (!drawingId) {
+      return;
+    }
+
+    setPublicationBusy(true);
+    setError(null);
+    showToast("Disabling...");
+
+    try {
+      const body = await requestJson<PublicationResponse>(`/api/drawings/${drawingId}/publication`, {
+        method: "PUT",
+        body: JSON.stringify({ enabled: false }),
+      });
+
+      applyPublication(body);
+      showToast("Publication disabled", 2000);
+    } catch (disableError) {
+      setError(disableError instanceof Error ? disableError.message : "Disable failed");
+      showToast("Disable failed", 2000);
+    } finally {
+      setPublicationBusy(false);
+    }
+  }, [applyPublication, showToast]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
@@ -441,11 +526,17 @@ export function useDrawingSession() {
     error,
     toastMessage,
     editorReloadNonce,
+    publication,
+    publicationSlug,
+    publicationBusy,
     setActiveTitle,
     submitTitle,
     handleSceneChange,
     selectDrawing,
     createDrawing,
     deleteDrawing,
+    setPublicationSlug,
+    publishPublication,
+    disablePublication,
   };
 }

@@ -1,5 +1,6 @@
 import { type DrawingStore } from "./db";
-import { type DrawingMeta } from "../core/shared";
+import { normalizePublicationSlug } from "../core/publication";
+import { type DrawingMeta, type DrawingPublication } from "../core/shared";
 import { HttpError, normalizeTitle, parseJsonBody, parseSceneText } from "../core/scene";
 
 type RouteRequest = Request & {
@@ -46,6 +47,10 @@ function parseExpectedRevision(raw: Record<string, unknown>): number | undefined
   return value;
 }
 
+function jsonPublication(publication: DrawingPublication): Response {
+  return json(publication);
+}
+
 export function createApi(store: DrawingStore) {
   return {
     health() {
@@ -80,6 +85,24 @@ export function createApi(store: DrawingStore) {
           ...toMeta(drawing),
           ...drawing.scene,
         });
+      } catch (error) {
+        return errorResponse(error);
+      }
+    },
+
+    getPublicDrawing(request: RouteRequest) {
+      try {
+        const slug = request.params?.slug;
+        if (!slug) {
+          throw new HttpError(400, "Missing published slug");
+        }
+
+        const drawing = store.getPublicDrawing(slug);
+        if (!drawing) {
+          return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+        }
+
+        return json(drawing);
       } catch (error) {
         return errorResponse(error);
       }
@@ -149,6 +172,68 @@ export function createApi(store: DrawingStore) {
       }
 
       return json({ ok: true, nextId: next?.id ?? null });
+    },
+
+    getDrawingPublication(request: RouteRequest) {
+      try {
+        const id = request.params?.id;
+        if (!id) {
+          throw new HttpError(400, "Missing drawing id");
+        }
+
+        const publication = store.getDrawingPublication(id);
+        if (!publication) {
+          return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+        }
+
+        return jsonPublication(publication);
+      } catch (error) {
+        return errorResponse(error);
+      }
+    },
+
+    async updateDrawingPublication(request: RouteRequest) {
+      try {
+        const id = request.params?.id;
+        if (!id) {
+          throw new HttpError(400, "Missing drawing id");
+        }
+
+        const raw = parseJsonBody<Record<string, unknown>>(await request.text());
+        if (raw.enabled === false) {
+          const result = store.disableDrawingPublication(id);
+          if (!result.ok) {
+            return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+          }
+
+          return jsonPublication(result.publication);
+        }
+
+        if (raw.enabled !== true) {
+          throw new HttpError(400, "enabled must be a boolean");
+        }
+
+        const drawing = store.getDrawing(id);
+        if (!drawing) {
+          return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+        }
+
+        const result = store.publishDrawing(id, {
+          slug: normalizePublicationSlug(raw.slug),
+        });
+
+        if (!result.ok && result.reason === "not_found") {
+          return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+        }
+
+        if (!result.ok && result.reason === "slug_conflict") {
+          return json({ ok: false, error: "Published slug already exists" }, { status: 409 });
+        }
+
+        return jsonPublication(result.publication);
+      } catch (error) {
+        return errorResponse(error);
+      }
     },
   };
 }
