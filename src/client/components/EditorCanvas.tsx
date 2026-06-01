@@ -34,8 +34,6 @@ function sceneFromEditor(
   };
 }
 
-// ⚡ Bolt: Wrapped in React.memo to prevent expensive Excalidraw re-renders
-// when parent state (like the sidebar open state or drawing title input) changes.
 export const EditorCanvas = memo(function EditorCanvas({
   activeId,
   scene,
