@@ -1,3 +1,0 @@
-## 2024-06-25 - React.memo for EditorCanvas
-**Learning:** Re-rendering large complex components like Excalidraw on every keystroke (like editing a drawing title in the sidebar) can cause noticeable main thread blocking. React.memo is highly effective here since the canvas only cares about the active drawing ID and scene data, not transient UI state like sidebar visibility or title input state.
-**Action:** Always wrap heavy third-party React components (especially canvases, maps, or code editors) in `React.memo()` if they are placed adjacent to frequently updating state in their parent component.
