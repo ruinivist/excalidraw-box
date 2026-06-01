@@ -1,3 +1,4 @@
+import { memo } from "react";
 import "../../../node_modules/@excalidraw/excalidraw/dist/prod/index.css";
 import { Excalidraw } from "@excalidraw/excalidraw";
 import type {
@@ -33,7 +34,7 @@ function sceneFromEditor(
   };
 }
 
-export function EditorCanvas({
+export const EditorCanvas = memo(function EditorCanvas({
   activeId,
   scene,
   loading,
@@ -58,4 +59,4 @@ export function EditorCanvas({
       />
     </div>
   );
-}
+});
