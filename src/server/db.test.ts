@@ -79,7 +79,9 @@ describe("drawing store", () => {
     expect(stale.ok).toBe(false);
     expect(stale.ok ? null : stale.reason).toBe("conflict");
     expect(store.getDrawing(created.id)?.revision).toBe(1);
-    expect(store.getDrawing(created.id)?.scene.elements).toEqual([{ id: "first" }]);
+    expect(store.getDrawing(created.id)?.scene.elements).toEqual([
+      { id: "first" },
+    ]);
   });
 
   test("keeps the revision unchanged when the scene is already stored", () => {
@@ -109,13 +111,21 @@ describe("drawing store", () => {
       files: {},
     };
 
-    const first = store.updateDrawing(created.id, { expectedRevision: 0, scene });
+    const first = store.updateDrawing(created.id, {
+      expectedRevision: 0,
+      scene,
+    });
     expect(first.ok ? first.drawing.revision : null).toBe(1);
 
-    const repeated = store.updateDrawing(created.id, { expectedRevision: 0, scene });
+    const repeated = store.updateDrawing(created.id, {
+      expectedRevision: 0,
+      scene,
+    });
     expect(repeated.ok).toBe(true);
     expect(repeated.ok ? repeated.drawing.revision : null).toBe(1);
-    expect(store.getDrawing(created.id)?.scene.elements).toEqual([{ id: "same" }]);
+    expect(store.getDrawing(created.id)?.scene.elements).toEqual([
+      { id: "same" },
+    ]);
   });
 
   test("increments the revision when the title changes but the scene does not", () => {
@@ -127,10 +137,17 @@ describe("drawing store", () => {
       files: {},
     };
 
-    const first = store.updateDrawing(created.id, { expectedRevision: 0, scene });
+    const first = store.updateDrawing(created.id, {
+      expectedRevision: 0,
+      scene,
+    });
     expect(first.ok ? first.drawing.revision : null).toBe(1);
 
-    const renamed = store.updateDrawing(created.id, { expectedRevision: 1, title: "Renamed", scene });
+    const renamed = store.updateDrawing(created.id, {
+      expectedRevision: 1,
+      title: "Renamed",
+      scene,
+    });
     expect(renamed.ok).toBe(true);
     expect(renamed.ok ? renamed.drawing.title : null).toBe("Renamed");
     expect(renamed.ok ? renamed.drawing.revision : null).toBe(2);

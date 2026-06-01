@@ -2,7 +2,13 @@ import { Database } from "bun:sqlite";
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { DEFAULT_TITLE, type DrawingMeta, type DrawingPublication, type DrawingRecord, type ScenePayload } from "../core/shared";
+import {
+  DEFAULT_TITLE,
+  type DrawingMeta,
+  type DrawingPublication,
+  type DrawingRecord,
+  type ScenePayload,
+} from "../core/shared";
 import { emptyScene, normalizeScene, normalizeTitle } from "../core/scene";
 
 type DrawingRow = {
@@ -69,7 +75,9 @@ function readMeta(row: DrawingMetaRow | null | undefined): DrawingMeta | null {
   };
 }
 
-function readPublication(row: DrawingPublicationRow | null | undefined): DrawingPublication | null {
+function readPublication(
+  row: DrawingPublicationRow | null | undefined,
+): DrawingPublication | null {
   if (!row) {
     return null;
   }
@@ -93,7 +101,8 @@ function readPublicDrawing(row: PublicDrawingRow | null | undefined) {
   try {
     scene = normalizeScene(JSON.parse(row.data));
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown scene parsing error";
+    const message =
+      error instanceof Error ? error.message : "Unknown scene parsing error";
     throw new Error(`Invalid stored public scene: ${message}`);
   }
 
@@ -112,7 +121,8 @@ function readRow(row: DrawingRow | null | undefined): DrawingRecord | null {
   try {
     scene = normalizeScene(JSON.parse(row.data));
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown scene parsing error";
+    const message =
+      error instanceof Error ? error.message : "Unknown scene parsing error";
     throw new Error(`Invalid stored scene for drawing ${row.id}: ${message}`);
   }
 
@@ -123,13 +133,15 @@ function readRow(row: DrawingRow | null | undefined): DrawingRecord | null {
 }
 
 function ensurePublicationColumns(db: Database) {
-  const columns = db
-    .query("PRAGMA table_info(drawings)")
-    .all() as Array<{ name: string }>;
+  const columns = db.query("PRAGMA table_info(drawings)").all() as Array<{
+    name: string;
+  }>;
   const names = new Set(columns.map((column) => column.name));
 
   if (!names.has("public_enabled")) {
-    db.exec("ALTER TABLE drawings ADD COLUMN public_enabled INTEGER NOT NULL DEFAULT 0");
+    db.exec(
+      "ALTER TABLE drawings ADD COLUMN public_enabled INTEGER NOT NULL DEFAULT 0",
+    );
   }
 
   if (!names.has("public_slug")) {
@@ -138,7 +150,10 @@ function ensurePublicationColumns(db: Database) {
 }
 
 function isSlugConflictError(error: unknown): boolean {
-  return error instanceof Error && error.message.includes("UNIQUE constraint failed: drawings.public_slug");
+  return (
+    error instanceof Error &&
+    error.message.includes("UNIQUE constraint failed: drawings.public_slug")
+  );
 }
 
 export function createDrawingStore(databasePath = resolveDatabasePath()) {
@@ -310,8 +325,12 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
       return { ok: true, drawing: existing };
     }
 
-    const nextTitle = hasTitle ? normalizeTitle(update.title) : existingRow.title;
-    const nextScene = hasScene ? JSON.stringify(update.scene) : existingRow.data;
+    const nextTitle = hasTitle
+      ? normalizeTitle(update.title)
+      : existingRow.title;
+    const nextScene = hasScene
+      ? JSON.stringify(update.scene)
+      : existingRow.data;
     const titleChanged = nextTitle !== existingRow.title;
     const sceneChanged = nextScene !== existingRow.data;
 
@@ -319,7 +338,10 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
       return { ok: true, drawing: existing };
     }
 
-    if (update.expectedRevision !== undefined && update.expectedRevision !== existingRow.revision) {
+    if (
+      update.expectedRevision !== undefined &&
+      update.expectedRevision !== existingRow.revision
+    ) {
       return { ok: false, reason: "conflict", drawing: existing };
     }
 
@@ -328,17 +350,36 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
       changes =
         update.expectedRevision === undefined
           ? Number(updateBothQuery.run(id, nextTitle, nextScene).changes)
-          : Number(updateBothExpectedQuery.run(id, nextTitle, nextScene, update.expectedRevision).changes);
+          : Number(
+              updateBothExpectedQuery.run(
+                id,
+                nextTitle,
+                nextScene,
+                update.expectedRevision,
+              ).changes,
+            );
     } else if (sceneChanged) {
       changes =
         update.expectedRevision === undefined
           ? Number(updateSceneQuery.run(id, nextScene).changes)
-          : Number(updateSceneExpectedQuery.run(id, nextScene, update.expectedRevision).changes);
+          : Number(
+              updateSceneExpectedQuery.run(
+                id,
+                nextScene,
+                update.expectedRevision,
+              ).changes,
+            );
     } else {
       changes =
         update.expectedRevision === undefined
           ? Number(updateTitleQuery.run(id, nextTitle).changes)
-          : Number(updateTitleExpectedQuery.run(id, nextTitle, update.expectedRevision).changes);
+          : Number(
+              updateTitleExpectedQuery.run(
+                id,
+                nextTitle,
+                update.expectedRevision,
+              ).changes,
+            );
     }
 
     const drawing = getDrawing(id);
@@ -353,7 +394,10 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
     return { ok: false, reason: "conflict", drawing };
   }
 
-  function deleteDrawing(id: string): { deleted: boolean; next: DrawingMeta | null } {
+  function deleteDrawing(id: string): {
+    deleted: boolean;
+    next: DrawingMeta | null;
+  } {
     const changes = Number(deleteQuery.run(id).changes);
     if (changes === 0) {
       return { deleted: false, next: null };
@@ -366,10 +410,15 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
   }
 
   function getDrawingPublication(id: string): DrawingPublication | null {
-    return readPublication(getPublicationQuery.get(id) as DrawingPublicationRow | null | undefined);
+    return readPublication(
+      getPublicationQuery.get(id) as DrawingPublicationRow | null | undefined,
+    );
   }
 
-  function publishDrawing(id: string, publication: { slug: string }): DrawingPublicationUpdateResult {
+  function publishDrawing(
+    id: string,
+    publication: { slug: string },
+  ): DrawingPublicationUpdateResult {
     try {
       const changes = Number(publishQuery.run(id, publication.slug).changes);
       if (changes === 0) {
@@ -389,7 +438,9 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
     };
   }
 
-  function disableDrawingPublication(id: string): DrawingPublicationUpdateResult {
+  function disableDrawingPublication(
+    id: string,
+  ): DrawingPublicationUpdateResult {
     const changes = Number(disablePublicationQuery.run(id).changes);
     if (changes === 0) {
       return { ok: false, reason: "not_found" };
@@ -402,7 +453,9 @@ export function createDrawingStore(databasePath = resolveDatabasePath()) {
   }
 
   function getPublicDrawing(slug: string) {
-    return readPublicDrawing(getPublicDrawingQuery.get(slug) as PublicDrawingRow | null | undefined);
+    return readPublicDrawing(
+      getPublicDrawingQuery.get(slug) as PublicDrawingRow | null | undefined,
+    );
   }
 
   function close() {

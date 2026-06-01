@@ -50,6 +50,7 @@ Open `http://localhost:3000`.
 ## Test
 
 ```bash
+bun run format
 bun run test
 bun run typecheck
 ```

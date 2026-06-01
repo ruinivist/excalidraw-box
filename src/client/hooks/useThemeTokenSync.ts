@@ -21,7 +21,9 @@ const EXCALIDRAW_THEME_TOKEN_MAP = [
   ["--overlay-bg-color", "--app-overlay-bg"],
 ] as const;
 
-export function useThemeTokenSync(appShellRef: RefObject<HTMLDivElement | null>) {
+export function useThemeTokenSync(
+  appShellRef: RefObject<HTMLDivElement | null>,
+) {
   const themeSyncFrameRef = useRef<number | null>(null);
 
   const syncThemeTokens = useCallback(() => {

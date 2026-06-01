@@ -17,11 +17,16 @@ class RequestError extends Error {
 }
 
 async function requestPublicDrawing(slug: string): Promise<PublicDrawing> {
-  const response = await fetch(`/api/public/drawings/${encodeURIComponent(slug)}`);
+  const response = await fetch(
+    `/api/public/drawings/${encodeURIComponent(slug)}`,
+  );
   const body = (await response.json()) as PublicDrawing & { error?: string };
 
   if (!response.ok) {
-    throw new RequestError(response.status, body.error ?? `Request failed: ${response.status}`);
+    throw new RequestError(
+      response.status,
+      body.error ?? `Request failed: ${response.status}`,
+    );
   }
 
   return body;
@@ -52,7 +57,11 @@ export function usePublicDrawing(slug: string): PublicDrawingState {
         }
 
         setDrawing(null);
-        setError(loadError instanceof Error ? loadError.message : "Failed to load drawing");
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Failed to load drawing",
+        );
       })
       .finally(() => {
         if (!cancelled) {

@@ -62,7 +62,9 @@ export function normalizeScene(input: unknown): ScenePayload {
   }
 
   const appState = Object.fromEntries(
-    Object.entries(input.appState).filter(([key]) => !VOLATILE_APP_STATE_KEYS.has(key)),
+    Object.entries(input.appState).filter(
+      ([key]) => !VOLATILE_APP_STATE_KEYS.has(key),
+    ),
   );
 
   return {

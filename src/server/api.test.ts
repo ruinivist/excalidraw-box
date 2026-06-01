@@ -52,7 +52,9 @@ describe("api", () => {
     const { api, cleanup } = withApi();
 
     const response = api.getDrawing(
-      Object.assign(new Request("http://local/api/drawings/missing"), { params: { id: "missing" } }),
+      Object.assign(new Request("http://local/api/drawings/missing"), {
+        params: { id: "missing" },
+      }),
     );
 
     expect(response.status).toBe(404);
@@ -199,9 +201,13 @@ describe("api", () => {
       },
     });
 
-    const stored = await api.getDrawing(
-      Object.assign(new Request(`http://local/api/drawings/${created.id}`), { params: { id: created.id } }),
-    ).json();
+    const stored = await api
+      .getDrawing(
+        Object.assign(new Request(`http://local/api/drawings/${created.id}`), {
+          params: { id: created.id },
+        }),
+      )
+      .json();
     expect(stored.elements).toEqual([{ id: "server" }]);
     cleanup();
   });
@@ -211,7 +217,10 @@ describe("api", () => {
     const created = await api.createDrawing().json();
 
     const disabled = await api.getDrawingPublication(
-      Object.assign(new Request(`http://local/api/drawings/${created.id}/publication`), { params: { id: created.id } }),
+      Object.assign(
+        new Request(`http://local/api/drawings/${created.id}/publication`),
+        { params: { id: created.id } },
+      ),
     );
     expect(disabled.status).toBe(200);
     expect(await disabled.json()).toEqual({ enabled: false });
@@ -236,7 +245,10 @@ describe("api", () => {
     });
 
     const enabled = await api.getDrawingPublication(
-      Object.assign(new Request(`http://local/api/drawings/${created.id}/publication`), { params: { id: created.id } }),
+      Object.assign(
+        new Request(`http://local/api/drawings/${created.id}/publication`),
+        { params: { id: created.id } },
+      ),
     );
     expect(await enabled.json()).toEqual({
       enabled: true,
@@ -394,7 +406,10 @@ describe("api", () => {
     );
 
     const enabled = await api.getPublicDrawing(
-      Object.assign(new Request("http://local/api/public/drawings/public-flow"), { params: { slug: "public-flow" } }),
+      Object.assign(
+        new Request("http://local/api/public/drawings/public-flow"),
+        { params: { slug: "public-flow" } },
+      ),
     );
 
     expect(enabled.status).toBe(200);
@@ -406,7 +421,9 @@ describe("api", () => {
     });
 
     const missing = await api.getPublicDrawing(
-      Object.assign(new Request("http://local/api/public/drawings/missing"), { params: { slug: "missing" } }),
+      Object.assign(new Request("http://local/api/public/drawings/missing"), {
+        params: { slug: "missing" },
+      }),
     );
     expect(missing.status).toBe(404);
     cleanup();

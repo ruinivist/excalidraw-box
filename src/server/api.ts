@@ -1,7 +1,12 @@
 import { type DrawingStore } from "./db";
 import { normalizePublicationSlug } from "../core/publication";
 import { type DrawingMeta, type DrawingPublication } from "../core/shared";
-import { HttpError, normalizeTitle, parseJsonBody, parseSceneText } from "../core/scene";
+import {
+  HttpError,
+  normalizeTitle,
+  parseJsonBody,
+  parseSceneText,
+} from "../core/scene";
 
 type RouteRequest = Request & {
   params?: Record<string, string>;
@@ -34,7 +39,9 @@ function toMeta(drawing: DrawingMeta): DrawingMeta {
   };
 }
 
-function parseExpectedRevision(raw: Record<string, unknown>): number | undefined {
+function parseExpectedRevision(
+  raw: Record<string, unknown>,
+): number | undefined {
   if (!Object.hasOwn(raw, "expectedRevision")) {
     return undefined;
   }
@@ -78,7 +85,10 @@ export function createApi(store: DrawingStore) {
         const drawing = id ? store.getDrawing(id) : null;
 
         if (!drawing) {
-          return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+          return json(
+            { ok: false, error: "Drawing not found" },
+            { status: 404 },
+          );
         }
 
         return json({
@@ -99,7 +109,10 @@ export function createApi(store: DrawingStore) {
 
         const drawing = store.getPublicDrawing(slug);
         if (!drawing) {
-          return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+          return json(
+            { ok: false, error: "Drawing not found" },
+            { status: 404 },
+          );
         }
 
         return json(drawing);
@@ -136,7 +149,10 @@ export function createApi(store: DrawingStore) {
         });
 
         if (!result.ok && result.reason === "not_found") {
-          return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+          return json(
+            { ok: false, error: "Drawing not found" },
+            { status: 404 },
+          );
         }
 
         if (!result.ok && result.reason === "conflict") {
@@ -163,7 +179,10 @@ export function createApi(store: DrawingStore) {
     deleteDrawing(request: RouteRequest) {
       const id = request.params?.id;
       if (!id) {
-        return json({ ok: false, error: "Missing drawing id" }, { status: 400 });
+        return json(
+          { ok: false, error: "Missing drawing id" },
+          { status: 400 },
+        );
       }
 
       const { deleted, next } = store.deleteDrawing(id);
@@ -183,7 +202,10 @@ export function createApi(store: DrawingStore) {
 
         const publication = store.getDrawingPublication(id);
         if (!publication) {
-          return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+          return json(
+            { ok: false, error: "Drawing not found" },
+            { status: 404 },
+          );
         }
 
         return jsonPublication(publication);
@@ -199,11 +221,16 @@ export function createApi(store: DrawingStore) {
           throw new HttpError(400, "Missing drawing id");
         }
 
-        const raw = parseJsonBody<Record<string, unknown>>(await request.text());
+        const raw = parseJsonBody<Record<string, unknown>>(
+          await request.text(),
+        );
         if (raw.enabled === false) {
           const result = store.disableDrawingPublication(id);
           if (!result.ok) {
-            return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+            return json(
+              { ok: false, error: "Drawing not found" },
+              { status: 404 },
+            );
           }
 
           return jsonPublication(result.publication);
@@ -215,7 +242,10 @@ export function createApi(store: DrawingStore) {
 
         const drawing = store.getDrawing(id);
         if (!drawing) {
-          return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+          return json(
+            { ok: false, error: "Drawing not found" },
+            { status: 404 },
+          );
         }
 
         const result = store.publishDrawing(id, {
@@ -223,11 +253,17 @@ export function createApi(store: DrawingStore) {
         });
 
         if (!result.ok && result.reason === "not_found") {
-          return json({ ok: false, error: "Drawing not found" }, { status: 404 });
+          return json(
+            { ok: false, error: "Drawing not found" },
+            { status: 404 },
+          );
         }
 
         if (!result.ok && result.reason === "slug_conflict") {
-          return json({ ok: false, error: "Published slug already exists" }, { status: 409 });
+          return json(
+            { ok: false, error: "Published slug already exists" },
+            { status: 409 },
+          );
         }
 
         return jsonPublication(result.publication);

@@ -38,12 +38,16 @@ describe("createServer", () => {
   test("redirects / to the latest drawing", () => {
     const { server, store } = createServerFixture();
 
-    const response = server.routes["/"]?.(new Request("http://local/")) as Response;
+    const response = server.routes["/"]?.(
+      new Request("http://local/"),
+    ) as Response;
     const created = store.listDrawings();
 
     expect(created).toHaveLength(1);
     expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toBe(`http://local/d/${created[0]?.id}`);
+    expect(response.headers.get("location")).toBe(
+      `http://local/d/${created[0]?.id}`,
+    );
   });
 
   test("keeps Bun responsible for API routes", async () => {
@@ -67,9 +71,12 @@ describe("createServer", () => {
     store.publishDrawing(drawing.id, { slug: "published-note" });
 
     const response = await server.routes["/api/public/drawings/:slug"]?.GET?.(
-      Object.assign(new Request("http://local/api/public/drawings/published-note"), {
-        params: { slug: "published-note" },
-      }),
+      Object.assign(
+        new Request("http://local/api/public/drawings/published-note"),
+        {
+          params: { slug: "published-note" },
+        },
+      ),
     );
 
     expect(response?.status).toBe(200);
@@ -85,7 +92,9 @@ describe("createServer", () => {
     const { server } = createServerFixture();
 
     const response = await server.routes["/api/public/drawings/:slug"]?.GET?.(
-      Object.assign(new Request("http://local/api/public/drawings/missing"), { params: { slug: "missing" } }),
+      Object.assign(new Request("http://local/api/public/drawings/missing"), {
+        params: { slug: "missing" },
+      }),
     );
 
     expect(response?.status).toBe(404);
@@ -93,7 +102,9 @@ describe("createServer", () => {
 
   test("returns JSON 404 for unmatched requests", async () => {
     const { server } = createServerFixture();
-    const response = await server.fetch(new Request("http://local/index-abc123.js"));
+    const response = await server.fetch(
+      new Request("http://local/index-abc123.js"),
+    );
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ ok: false, error: "Not found" });

@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_TITLE, type DrawingMeta, type DrawingPublication, type ScenePayload } from "../../core/shared";
+import {
+  DEFAULT_TITLE,
+  type DrawingMeta,
+  type DrawingPublication,
+  type ScenePayload,
+} from "../../core/shared";
 
 type DrawingResponse = DrawingMeta & ScenePayload;
 type PublicationResponse = DrawingPublication;
@@ -24,7 +29,10 @@ function sortDrawings(drawings: DrawingMeta[]): DrawingMeta[] {
   return [...drawings].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-function replaceMeta(drawings: DrawingMeta[], drawing: DrawingMeta): DrawingMeta[] {
+function replaceMeta(
+  drawings: DrawingMeta[],
+  drawing: DrawingMeta,
+): DrawingMeta[] {
   const filtered = drawings.filter((item) => item.id !== drawing.id);
   return sortDrawings([drawing, ...filtered]);
 }
@@ -50,8 +58,14 @@ function fetchDrawingList() {
   return requestJson<DrawingMeta[]>("/api/drawings", { method: "GET" });
 }
 
-function isConflictError(error: unknown): error is RequestError & { body: ApiErrorBody & { drawing: DrawingMeta } } {
-  return error instanceof RequestError && error.status === 409 && error.body.drawing !== undefined;
+function isConflictError(
+  error: unknown,
+): error is RequestError & { body: ApiErrorBody & { drawing: DrawingMeta } } {
+  return (
+    error instanceof RequestError &&
+    error.status === 409 &&
+    error.body.drawing !== undefined
+  );
 }
 
 function sceneFromDrawing(drawing: DrawingResponse): ScenePayload {
@@ -71,7 +85,9 @@ export function useDrawingSession() {
   const [error, setError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [editorReloadNonce, setEditorReloadNonce] = useState(0);
-  const [publication, setPublication] = useState<DrawingPublication>({ enabled: false });
+  const [publication, setPublication] = useState<DrawingPublication>({
+    enabled: false,
+  });
   const [publicationSlug, setPublicationSlugState] = useState("");
   const [publicationBusy, setPublicationBusy] = useState(false);
 
@@ -93,17 +109,23 @@ export function useDrawingSession() {
     }
   }, []);
 
-  const showToast = useCallback((message: string | null, timeoutMs?: number) => {
-    if (toastTimeoutRef.current !== null) {
-      clearTimeout(toastTimeoutRef.current);
-      toastTimeoutRef.current = null;
-    }
+  const showToast = useCallback(
+    (message: string | null, timeoutMs?: number) => {
+      if (toastTimeoutRef.current !== null) {
+        clearTimeout(toastTimeoutRef.current);
+        toastTimeoutRef.current = null;
+      }
 
-    setToastMessage(message);
-    if (message !== null && timeoutMs !== undefined) {
-      toastTimeoutRef.current = window.setTimeout(() => setToastMessage(null), timeoutMs);
-    }
-  }, []);
+      setToastMessage(message);
+      if (message !== null && timeoutMs !== undefined) {
+        toastTimeoutRef.current = window.setTimeout(
+          () => setToastMessage(null),
+          timeoutMs,
+        );
+      }
+    },
+    [],
+  );
 
   const refreshList = useCallback(async () => {
     const list = await fetchDrawingList();
@@ -111,17 +133,20 @@ export function useDrawingSession() {
     return list;
   }, []);
 
-  const applyPublication = useCallback((nextPublication: DrawingPublication) => {
-    publicationEnabledRef.current = nextPublication.enabled;
-    setPublication(nextPublication);
+  const applyPublication = useCallback(
+    (nextPublication: DrawingPublication) => {
+      publicationEnabledRef.current = nextPublication.enabled;
+      setPublication(nextPublication);
 
-    if (nextPublication.enabled) {
-      setPublicationSlugState(nextPublication.slug);
-      return;
-    }
+      if (nextPublication.enabled) {
+        setPublicationSlugState(nextPublication.slug);
+        return;
+      }
 
-    setPublicationSlugState("");
-  }, []);
+      setPublicationSlugState("");
+    },
+    [],
+  );
 
   const loadDrawing = useCallback(
     async (drawingId: string) => {
@@ -132,8 +157,13 @@ export function useDrawingSession() {
       try {
         const [list, drawing, nextPublication] = await Promise.all([
           requestJson<DrawingMeta[]>("/api/drawings", { method: "GET" }),
-          requestJson<DrawingResponse>(`/api/drawings/${drawingId}`, { method: "GET" }),
-          requestJson<PublicationResponse>(`/api/drawings/${drawingId}/publication`, { method: "GET" }),
+          requestJson<DrawingResponse>(`/api/drawings/${drawingId}`, {
+            method: "GET",
+          }),
+          requestJson<PublicationResponse>(
+            `/api/drawings/${drawingId}/publication`,
+            { method: "GET" },
+          ),
         ]);
 
         if (version !== loadVersionRef.current) {
@@ -159,7 +189,11 @@ export function useDrawingSession() {
           return;
         }
 
-        setError(loadError instanceof Error ? loadError.message : "Failed to load drawing");
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Failed to load drawing",
+        );
       } finally {
         if (version === loadVersionRef.current) {
           setLoading(false);
@@ -183,10 +217,13 @@ export function useDrawingSession() {
         showToast("Saving...");
       }
 
-      const promise = requestJson<UpdateResponse>(`/api/drawings/${drawingId}`, {
-        method: "PUT",
-        body: JSON.stringify({ ...nextScene, expectedRevision }),
-      })
+      const promise = requestJson<UpdateResponse>(
+        `/api/drawings/${drawingId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ ...nextScene, expectedRevision }),
+        },
+      )
         .then((body) => {
           setDrawings((current) => replaceMeta(current, body.drawing));
           if (currentIdRef.current === drawingId) {
@@ -200,14 +237,18 @@ export function useDrawingSession() {
           if (isConflictError(saveError)) {
             clearPendingSaveTimeout();
             setError(null);
-            setDrawings((current) => replaceMeta(current, saveError.body.drawing));
+            setDrawings((current) =>
+              replaceMeta(current, saveError.body.drawing),
+            );
             if (isManual) {
               showToast("Reloading latest...");
             }
             return loadDrawing(drawingId);
           }
 
-          setError(saveError instanceof Error ? saveError.message : "Save failed");
+          setError(
+            saveError instanceof Error ? saveError.message : "Save failed",
+          );
           if (isManual) {
             showToast("Save failed", 2000);
           }
@@ -257,7 +298,10 @@ export function useDrawingSession() {
   }, [saveScene]);
 
   const navigateToDrawing = useCallback(
-    async (drawingId: string, options?: { replace?: boolean; flush?: boolean }) => {
+    async (
+      drawingId: string,
+      options?: { replace?: boolean; flush?: boolean },
+    ) => {
       const replace = options?.replace ?? false;
       const flush = options?.flush ?? true;
 
@@ -285,7 +329,9 @@ export function useDrawingSession() {
 
   const createDrawing = useCallback(async () => {
     await flushPendingSave();
-    const created = await requestJson<DrawingResponse>("/api/drawings", { method: "POST" });
+    const created = await requestJson<DrawingResponse>("/api/drawings", {
+      method: "POST",
+    });
     await navigateToDrawing(created.id, { flush: false });
   }, [flushPendingSave, navigateToDrawing]);
 
@@ -299,12 +345,18 @@ export function useDrawingSession() {
         await flushPendingSave();
       }
 
-      const response = await requestJson<{ ok: true; nextId: string | null }>(`/api/drawings/${drawingId}`, {
-        method: "DELETE",
-      });
+      const response = await requestJson<{ ok: true; nextId: string | null }>(
+        `/api/drawings/${drawingId}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (drawingId === currentIdRef.current && response.nextId) {
-        await navigateToDrawing(response.nextId, { replace: true, flush: false });
+        await navigateToDrawing(response.nextId, {
+          replace: true,
+          flush: false,
+        });
       } else {
         await refreshList();
       }
@@ -324,13 +376,16 @@ export function useDrawingSession() {
     }
 
     try {
-      const body = await requestJson<UpdateResponse>(`/api/drawings/${drawingId}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          title: currentTitleRef.current,
-          expectedRevision: loadedRevisionRef.current,
-        }),
-      });
+      const body = await requestJson<UpdateResponse>(
+        `/api/drawings/${drawingId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            title: currentTitleRef.current,
+            expectedRevision: loadedRevisionRef.current,
+          }),
+        },
+      );
 
       currentTitleRef.current = body.drawing.title;
       loadedRevisionRef.current = body.drawing.revision;
@@ -339,12 +394,16 @@ export function useDrawingSession() {
     } catch (renameError) {
       if (isConflictError(renameError)) {
         clearPendingSaveTimeout();
-        setDrawings((current) => replaceMeta(current, renameError.body.drawing));
+        setDrawings((current) =>
+          replaceMeta(current, renameError.body.drawing),
+        );
         await loadDrawing(drawingId);
         return;
       }
 
-      setError(renameError instanceof Error ? renameError.message : "Rename failed");
+      setError(
+        renameError instanceof Error ? renameError.message : "Rename failed",
+      );
     }
   }, [clearPendingSaveTimeout, loadDrawing]);
 
@@ -391,18 +450,23 @@ export function useDrawingSession() {
         return;
       }
 
-      const body = await requestJson<PublicationResponse>(`/api/drawings/${currentDrawingId}/publication`, {
-        method: "PUT",
-        body: JSON.stringify({
-          enabled: true,
-          slug: publicationSlug,
-        }),
-      });
+      const body = await requestJson<PublicationResponse>(
+        `/api/drawings/${currentDrawingId}/publication`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            enabled: true,
+            slug: publicationSlug,
+          }),
+        },
+      );
 
       applyPublication(body);
       showToast("Published", 2000);
     } catch (publishError) {
-      setError(publishError instanceof Error ? publishError.message : "Publish failed");
+      setError(
+        publishError instanceof Error ? publishError.message : "Publish failed",
+      );
       showToast("Publish failed", 2000);
     } finally {
       setPublicationBusy(false);
@@ -420,15 +484,20 @@ export function useDrawingSession() {
     showToast("Disabling...");
 
     try {
-      const body = await requestJson<PublicationResponse>(`/api/drawings/${drawingId}/publication`, {
-        method: "PUT",
-        body: JSON.stringify({ enabled: false }),
-      });
+      const body = await requestJson<PublicationResponse>(
+        `/api/drawings/${drawingId}/publication`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ enabled: false }),
+        },
+      );
 
       applyPublication(body);
       showToast("Publication disabled", 2000);
     } catch (disableError) {
-      setError(disableError instanceof Error ? disableError.message : "Disable failed");
+      setError(
+        disableError instanceof Error ? disableError.message : "Disable failed",
+      );
       showToast("Disable failed", 2000);
     } finally {
       setPublicationBusy(false);
@@ -476,9 +545,15 @@ export function useDrawingSession() {
         const list = await refreshList();
         const drawingId = currentIdRef.current;
         const loadedRevision = loadedRevisionRef.current;
-        const serverDrawing = drawingId ? list.find((drawing) => drawing.id === drawingId) : null;
+        const serverDrawing = drawingId
+          ? list.find((drawing) => drawing.id === drawingId)
+          : null;
 
-        if (serverDrawing && loadedRevision !== null && serverDrawing.revision > loadedRevision) {
+        if (
+          serverDrawing &&
+          loadedRevision !== null &&
+          serverDrawing.revision > loadedRevision
+        ) {
           clearPendingSaveTimeout();
           await loadDrawing(serverDrawing.id);
         }

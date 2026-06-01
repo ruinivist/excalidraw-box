@@ -6,9 +6,7 @@ import { usePublicDrawing } from "./hooks/usePublicDrawing";
 import { useDrawingSession } from "./hooks/useDrawingSession";
 import { useThemeTokenSync } from "./hooks/useThemeTokenSync";
 
-type AppRoute =
-  | { type: "private" }
-  | { type: "public"; slug: string };
+type AppRoute = { type: "private" } | { type: "public"; slug: string };
 
 function routeFromPath(pathname = window.location.pathname): AppRoute {
   if (!pathname.startsWith("/p/")) {
