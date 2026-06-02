@@ -74,9 +74,40 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function randomInt(): number {
   return (
-    crypto.getRandomValues(new Uint32Array(1))[0] ??
+    globalThis.crypto?.getRandomValues(new Uint32Array(1))[0] ??
     Math.floor(Math.random() * 2 ** 31)
   );
+}
+
+function createElementId(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    // randomUUID is only available in https context
+    return globalThis.crypto.randomUUID();
+  }
+
+  const bytes = new Uint8Array(16);
+  globalThis.crypto?.getRandomValues(bytes);
+
+  // Mark the identifier as RFC 4122 version 4 when Web Crypto UUID support is
+  // unavailable, such as Firefox over plain HTTP.
+  bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x40;
+  bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80;
+
+  const segments = [
+    bytes.subarray(0, 4),
+    bytes.subarray(4, 6),
+    bytes.subarray(6, 8),
+    bytes.subarray(8, 10),
+    bytes.subarray(10, 16),
+  ];
+
+  return segments
+    .map((segment) =>
+      Array.from(segment, (byte) => byte.toString(16).padStart(2, "0")).join(
+        "",
+      ),
+    )
+    .join("-");
 }
 
 function getCanonicalCodeBlockLanguage(
@@ -172,7 +203,7 @@ export function createCodeBlockElement({
   const now = Date.now();
 
   return {
-    id: crypto.randomUUID(),
+    id: createElementId(),
     type: "embeddable",
     x,
     y,
