@@ -41,7 +41,9 @@ function testScene(): ScenePayload {
 
 describe("mcp tool handlers", () => {
   test("PUBLIC_BASE_URL is required", () => {
-    expect(() => resolvePublicBaseUrl("")).toThrow("PUBLIC_BASE_URL is required");
+    expect(() => resolvePublicBaseUrl("")).toThrow(
+      "PUBLIC_BASE_URL is required",
+    );
   });
 
   test("create_drawing writes an explicit scene to a temp SQLite DB", () => {
@@ -79,14 +81,21 @@ describe("mcp tool handlers", () => {
 
   test("replace_drawing updates the existing drawing", () => {
     const { store, tools } = createTempTools();
-    const result = tools.create_drawing({ title: "replace", scene: testScene() });
+    const result = tools.create_drawing({
+      title: "replace",
+      scene: testScene(),
+    });
     const nextScene: ScenePayload = {
       elements: [{ id: "manual", type: "rectangle" }],
       appState: { theme: "dark" },
       files: {},
     };
 
-    const replaced = tools.replace_drawing({ id: result.id, title: "replaced", scene: nextScene });
+    const replaced = tools.replace_drawing({
+      id: result.id,
+      title: "replaced",
+      scene: nextScene,
+    });
 
     expect(store.listDrawings()).toHaveLength(1);
     expect(replaced.revision).toBe(2);
@@ -121,13 +130,17 @@ describe("mcp tool handlers", () => {
 
     expect(patched.revision).toBe(2);
     expect(store.getDrawing(result.id)?.revision).toBe(2);
-    expect(store.getDrawing(result.id)?.scene.elements).toEqual([{ id: "one", type: "rectangle", x: 42, y: 20 }]);
+    expect(store.getDrawing(result.id)?.scene.elements).toEqual([
+      { id: "one", type: "rectangle", x: 42, y: 20 },
+    ]);
   });
 
   test("missing drawing IDs return tool errors", () => {
     const { tools } = createTempTools();
 
-    expect(() => tools.get_drawing({ id: "missing" })).toThrow("Drawing not found: missing");
+    expect(() => tools.get_drawing({ id: "missing" })).toThrow(
+      "Drawing not found: missing",
+    );
     expect(() =>
       tools.replace_drawing({
         id: "missing",

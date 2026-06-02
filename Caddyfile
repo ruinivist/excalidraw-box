@@ -12,25 +12,19 @@
     Referrer-Policy "strict-origin-when-cross-origin"
   }
 
-  @mcp path /mcp
-  handle @mcp {
+  handle /mcp {
     reverse_proxy 127.0.0.1:3001
   }
 
-  @api path /api/*
-  handle @api {
-    reverse_proxy 127.0.0.1:3000
-  }
-
-  @root path /
-  handle @root {
+  @app path / /api/*
+  handle @app {
     reverse_proxy 127.0.0.1:3000
   }
 
   handle {
     root * /srv/public
 
-    @html path /index.html /d/*
+    @html path /index.html /d/* /p/*
     header @html Cache-Control "no-cache"
 
     @assets path_regexp assets \.(?:css|js|mjs|svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|otf)$

@@ -5,3 +5,7 @@
 - Keep commit messages terse.
 
 Example: `feat: dark mode by default`
+
+# Decisions on architecture and design
+
+Read [DECISIONS.md](DECISIONS.md)

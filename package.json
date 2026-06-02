@@ -8,9 +8,14 @@
     "build:client": "bun build --target=browser --production --outdir ./dist/public ./src/client/index.html",
     "build:server": "mkdir -p ./dist/server && bun build --target=bun --production --outfile ./dist/server/server.js ./src/server/http-server.tsx",
     "build:mcp": "mkdir -p ./dist/mcp && bun build --target=bun --production --outfile ./dist/mcp/mcp-server.js ./src/mcp/server.ts",
+    "format": "prettier --write .",
+    "postinstall": "simple-git-hooks",
     "start": "DATABASE_PATH=./data/excalidraw.sqlite bun ./dist/server/server.js",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "bunx pretty-quick --staged"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.1",
@@ -25,6 +30,12 @@
     "@types/bun": "^1.3.14",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
+    "prettier": "^3.8.3",
+    "pretty-quick": "^4.2.2",
+    "simple-git-hooks": "^2.13.1",
     "typescript": "^5.9.3"
+  },
+  "patchedDependencies": {
+    "@excalidraw/excalidraw@0.18.1": "patches/@excalidraw%2Fexcalidraw@0.18.1.patch"
   }
 }

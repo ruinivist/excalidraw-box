@@ -3,7 +3,7 @@ name: Publish GHCR Image
 on:
   push:
     tags:
-      - 'release-*'
+      - "release-*"
 
 permissions:
   contents: read

@@ -79,7 +79,9 @@ describe("drawing store", () => {
     expect(stale.ok).toBe(false);
     expect(stale.ok ? null : stale.reason).toBe("conflict");
     expect(store.getDrawing(created.id)?.revision).toBe(1);
-    expect(store.getDrawing(created.id)?.scene.elements).toEqual([{ id: "first" }]);
+    expect(store.getDrawing(created.id)?.scene.elements).toEqual([
+      { id: "first" },
+    ]);
   });
 
   test("keeps the revision unchanged when the scene is already stored", () => {
@@ -109,13 +111,21 @@ describe("drawing store", () => {
       files: {},
     };
 
-    const first = store.updateDrawing(created.id, { expectedRevision: 0, scene });
+    const first = store.updateDrawing(created.id, {
+      expectedRevision: 0,
+      scene,
+    });
     expect(first.ok ? first.drawing.revision : null).toBe(1);
 
-    const repeated = store.updateDrawing(created.id, { expectedRevision: 0, scene });
+    const repeated = store.updateDrawing(created.id, {
+      expectedRevision: 0,
+      scene,
+    });
     expect(repeated.ok).toBe(true);
     expect(repeated.ok ? repeated.drawing.revision : null).toBe(1);
-    expect(store.getDrawing(created.id)?.scene.elements).toEqual([{ id: "same" }]);
+    expect(store.getDrawing(created.id)?.scene.elements).toEqual([
+      { id: "same" },
+    ]);
   });
 
   test("increments the revision when the title changes but the scene does not", () => {
@@ -127,12 +137,113 @@ describe("drawing store", () => {
       files: {},
     };
 
-    const first = store.updateDrawing(created.id, { expectedRevision: 0, scene });
+    const first = store.updateDrawing(created.id, {
+      expectedRevision: 0,
+      scene,
+    });
     expect(first.ok ? first.drawing.revision : null).toBe(1);
 
-    const renamed = store.updateDrawing(created.id, { expectedRevision: 1, title: "Renamed", scene });
+    const renamed = store.updateDrawing(created.id, {
+      expectedRevision: 1,
+      title: "Renamed",
+      scene,
+    });
     expect(renamed.ok).toBe(true);
     expect(renamed.ok ? renamed.drawing.title : null).toBe("Renamed");
     expect(renamed.ok ? renamed.drawing.revision : null).toBe(2);
+  });
+
+  test("persists publication fields and exposes public drawings by slug", () => {
+    const store = createTempStore();
+    const created = store.createDrawing("Flow");
+    store.updateDrawing(created.id, {
+      scene: {
+        elements: [{ id: "one" }],
+        appState: { theme: "dark" },
+        files: {},
+      },
+    });
+
+    const published = store.publishDrawing(created.id, { slug: "flow" });
+
+    expect(published.ok).toBe(true);
+    expect(store.getDrawingPublication(created.id)).toEqual({
+      enabled: true,
+      slug: "flow",
+    });
+    expect(store.getPublicDrawing("flow")).toEqual({
+      title: "Flow",
+      elements: [{ id: "one" }],
+      appState: { theme: "dark" },
+      files: {},
+    });
+  });
+
+  test("enforces unique active publication slugs", () => {
+    const store = createTempStore();
+    const first = store.createDrawing("First");
+    const second = store.createDrawing("Second");
+
+    expect(
+      store.publishDrawing(first.id, {
+        slug: "shared",
+      }),
+    ).toEqual({
+      ok: true,
+      publication: {
+        enabled: true,
+        slug: "shared",
+      },
+    });
+
+    expect(
+      store.publishDrawing(second.id, {
+        slug: "shared",
+      }),
+    ).toEqual({
+      ok: false,
+      reason: "slug_conflict",
+    });
+
+    expect(store.disableDrawingPublication(first.id)).toEqual({
+      ok: true,
+      publication: { enabled: false },
+    });
+
+    expect(
+      store.publishDrawing(second.id, {
+        slug: "shared",
+      }),
+    ).toEqual({
+      ok: true,
+      publication: {
+        enabled: true,
+        slug: "shared",
+      },
+    });
+  });
+
+  test("clears public fields on disable", () => {
+    const store = createTempStore();
+    const created = store.createDrawing();
+
+    expect(
+      store.publishDrawing(created.id, {
+        slug: "note",
+      }),
+    ).toEqual({
+      ok: true,
+      publication: {
+        enabled: true,
+        slug: "note",
+      },
+    });
+
+    expect(store.disableDrawingPublication(created.id)).toEqual({
+      ok: true,
+      publication: { enabled: false },
+    });
+    expect(store.getDrawingPublication(created.id)).toEqual({ enabled: false });
+    expect(store.getPublicDrawing("note")).toBeNull();
   });
 });

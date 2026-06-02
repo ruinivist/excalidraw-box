@@ -1,10 +1,11 @@
-import "../../../node_modules/@excalidraw/excalidraw/dist/prod/index.css";
+import { memo } from "react";
 import { Excalidraw } from "@excalidraw/excalidraw";
 import type {
   AppState,
   BinaryFiles,
   ExcalidrawInitialDataState,
 } from "@excalidraw/excalidraw/types";
+import "../../../node_modules/@excalidraw/excalidraw/dist/prod/index.css";
 import { type ScenePayload } from "../../core/shared";
 
 type EditorCanvasProps = {
@@ -27,13 +28,14 @@ function sceneFromEditor(
   files: BinaryFiles,
 ): ScenePayload {
   return {
-    elements: [...elements],
+    // Excalidraw passes immutable arrays, avoid copying it on every onChange event
+    elements: elements as unknown[],
     appState: appState as unknown as Record<string, unknown>,
     files: files as unknown as Record<string, unknown>,
   };
 }
 
-export function EditorCanvas({
+export const EditorCanvas = memo(function EditorCanvas({
   activeId,
   scene,
   loading,
@@ -58,4 +60,4 @@ export function EditorCanvas({
       />
     </div>
   );
-}
+});

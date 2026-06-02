@@ -1,10 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DrawingSidebar, DrawingsToggle } from "./components/DrawingSidebar";
 import { EditorCanvas } from "./components/EditorCanvas";
+import { PublicViewer } from "./components/PublicViewer";
+import { usePublicDrawing } from "./hooks/usePublicDrawing";
 import { useDrawingSession } from "./hooks/useDrawingSession";
 import { useThemeTokenSync } from "./hooks/useThemeTokenSync";
 
-export function App() {
+type AppRoute = { type: "private" } | { type: "public"; slug: string };
+
+function routeFromPath(pathname = window.location.pathname): AppRoute {
+  if (!pathname.startsWith("/p/")) {
+    return { type: "private" };
+  }
+
+  const slug = pathname.slice(3);
+  if (slug.length === 0 || slug.includes("/")) {
+    return { type: "private" };
+  }
+
+  return { type: "public", slug: decodeURIComponent(slug) };
+}
+
+function PrivateApp() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const appShellRef = useRef<HTMLDivElement | null>(null);
   const scheduleThemeTokenSync = useThemeTokenSync(appShellRef);
@@ -17,12 +34,18 @@ export function App() {
     error,
     toastMessage,
     editorReloadNonce,
+    publication,
+    publicationSlug,
+    publicationBusy,
     setActiveTitle,
     submitTitle,
     handleSceneChange,
     selectDrawing,
     createDrawing,
     deleteDrawing,
+    setPublicationSlug,
+    publishPublication,
+    disablePublication,
   } = useDrawingSession();
 
   useEffect(() => {
@@ -98,13 +121,35 @@ export function App() {
         drawings={drawings}
         activeId={activeId}
         activeTitle={activeTitle}
+        publication={publication}
+        publicationSlug={publicationSlug}
+        publicationBusy={publicationBusy}
         onClose={closeSidebar}
         onCreate={handleCreateDrawing}
         onSelect={handleSelectDrawing}
         onDelete={(drawingId) => void deleteDrawing(drawingId)}
         onTitleChange={setActiveTitle}
         onTitleSubmit={() => void submitTitle()}
+        onPublicationSlugChange={setPublicationSlug}
+        onPublish={() => void publishPublication()}
+        onDisablePublication={() => void disablePublication()}
       />
     </div>
   );
+}
+
+function PublicApp({ slug }: { slug: string }) {
+  const { drawing, loading, error } = usePublicDrawing(slug);
+
+  return <PublicViewer drawing={drawing} loading={loading} error={error} />;
+}
+
+export function App() {
+  const route = routeFromPath();
+
+  if (route.type === "public") {
+    return <PublicApp slug={route.slug} />;
+  }
+
+  return <PrivateApp />;
 }

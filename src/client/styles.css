@@ -134,6 +134,22 @@ input {
   font-size: var(--app-sidebar-font-size);
 }
 
+.drawing-link-active {
+  display: grid;
+  gap: 10px;
+}
+
+.drawing-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drawing-delete-button {
+  flex: 0 0 32px;
+  margin-left: auto;
+}
+
 .drawing-title,
 .title-input {
   display: block;
@@ -150,6 +166,38 @@ input {
   color: var(--app-input-color);
   font-size: var(--app-sidebar-font-size);
   padding: 6px 8px;
+}
+
+.publication-panel {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0 4px;
+}
+
+.publication-label,
+.publication-status {
+  color: color-mix(in srgb, var(--app-text-color) 75%, white);
+  font-size: 0.75rem;
+}
+
+.publication-input {
+  font-family:
+    ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", monospace;
+}
+
+.publication-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.publication-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.publication-link:hover {
+  text-decoration: underline;
 }
 
 .editor-shell {
@@ -270,6 +318,7 @@ input {
 }
 
 .editor-frame,
+.public-viewer-shell,
 .editor-loading {
   height: 100%;
 }

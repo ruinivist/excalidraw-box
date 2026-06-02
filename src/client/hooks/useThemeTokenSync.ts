@@ -21,7 +21,9 @@ const EXCALIDRAW_THEME_TOKEN_MAP = [
   ["--overlay-bg-color", "--app-overlay-bg"],
 ] as const;
 
-export function useThemeTokenSync(appShellRef: RefObject<HTMLDivElement | null>) {
+export function useThemeTokenSync(
+  appShellRef: RefObject<HTMLDivElement | null>,
+) {
   const themeSyncFrameRef = useRef<number | null>(null);
 
   const syncThemeTokens = useCallback(() => {
@@ -31,10 +33,20 @@ export function useThemeTokenSync(appShellRef: RefObject<HTMLDivElement | null>)
       return;
     }
 
+    // Read all tokens first to avoid layout thrashing
     const computedStyles = window.getComputedStyle(excalidrawRoot);
+    const updates: Array<[string, string]> = [];
+
     for (const [sourceToken, targetToken] of EXCALIDRAW_THEME_TOKEN_MAP) {
       const value = computedStyles.getPropertyValue(sourceToken).trim();
       if (value) {
+        updates.push([targetToken, value]);
+      }
+    }
+
+    // Write in a separate pass, skipping unchanged values
+    for (const [targetToken, value] of updates) {
+      if (appShell.style.getPropertyValue(targetToken) !== value) {
         appShell.style.setProperty(targetToken, value);
       }
     }

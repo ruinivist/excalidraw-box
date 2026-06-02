@@ -47,7 +47,9 @@ function trimTrailingSlash(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
-export function resolvePublicBaseUrl(raw = process.env.PUBLIC_BASE_URL): string {
+export function resolvePublicBaseUrl(
+  raw = process.env.PUBLIC_BASE_URL,
+): string {
   const value = raw?.trim();
   if (!value) {
     throw new Error("PUBLIC_BASE_URL is required for the MCP server");
@@ -58,13 +60,14 @@ export function resolvePublicBaseUrl(raw = process.env.PUBLIC_BASE_URL): string 
     if (url.protocol === "http:" || url.protocol === "https:") {
       return trimTrailingSlash(url.toString());
     }
-  } catch {
-  }
+  } catch {}
 
   throw new Error("PUBLIC_BASE_URL must be an absolute http(s) URL");
 }
 
-export function resolveStylesGuidePath(raw = DEFAULT_STYLES_GUIDE_PATH): StylesGuideResource | undefined {
+export function resolveStylesGuidePath(
+  raw = DEFAULT_STYLES_GUIDE_PATH,
+): StylesGuideResource | undefined {
   const value = raw.trim();
 
   if (!isAbsolute(value)) {
@@ -75,7 +78,12 @@ export function resolveStylesGuidePath(raw = DEFAULT_STYLES_GUIDE_PATH): StylesG
   try {
     stats = statSync(value);
   } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
       return undefined;
     }
 
@@ -88,7 +96,9 @@ export function resolveStylesGuidePath(raw = DEFAULT_STYLES_GUIDE_PATH): StylesG
 
   const extension = extname(value).toLowerCase();
   if (extension !== ".md" && extension !== ".markdown") {
-    throw new Error("Styles guide path must point to a Markdown file (.md or .markdown)");
+    throw new Error(
+      "Styles guide path must point to a Markdown file (.md or .markdown)",
+    );
   }
 
   if (!stats.isFile()) {
@@ -127,7 +137,10 @@ function notFound(id: string): never {
   throw new Error(`Drawing not found: ${id}`);
 }
 
-function mutationResult(publicBaseUrl: string, drawing: { id: string; title: string; revision: number }) {
+function mutationResult(
+  publicBaseUrl: string,
+  drawing: { id: string; title: string; revision: number },
+) {
   return {
     id: drawing.id,
     title: drawing.title,
@@ -149,16 +162,26 @@ function updateExistingDrawing(
   return result.drawing;
 }
 
-function applyScenePatch(scene: ScenePayload, patch: Operation[]): ScenePayload {
+function applyScenePatch(
+  scene: ScenePayload,
+  patch: Operation[],
+): ScenePayload {
   try {
     const result = applyPatch(structuredClone(scene), patch, true, true, true);
     return normalizeScene(result.newDocument);
   } catch (error) {
-    throw new Error(error instanceof Error ? `Invalid JSON Patch: ${error.message}` : "Invalid JSON Patch");
+    throw new Error(
+      error instanceof Error
+        ? `Invalid JSON Patch: ${error.message}`
+        : "Invalid JSON Patch",
+    );
   }
 }
 
-export function createMcpToolHandlers(store: DrawingStore, publicBaseUrl: string) {
+export function createMcpToolHandlers(
+  store: DrawingStore,
+  publicBaseUrl: string,
+) {
   return {
     list_drawings() {
       return store.listDrawings();
@@ -224,7 +247,8 @@ export function createExcaliMcpHandler(
           "excali://styles-guide",
           {
             title: "Styles Guide",
-            description: "User-provided drawing styles guide for scene generation",
+            description:
+              "User-provided drawing styles guide for scene generation",
             mimeType: "text/markdown",
           },
           async (uri) => ({
@@ -252,7 +276,8 @@ export function createExcaliMcpHandler(
         "get_drawing",
         {
           title: "Get Drawing",
-          description: "Returns drawing metadata, browser URL, and raw ScenePayload.",
+          description:
+            "Returns drawing metadata, browser URL, and raw ScenePayload.",
           inputSchema: idInput.shape,
         },
         async (input) => jsonText(tools.get_drawing(input)),
@@ -262,7 +287,8 @@ export function createExcaliMcpHandler(
         "create_drawing",
         {
           title: "Create Drawing",
-          description: "Creates a drawing from an explicit Excalidraw ScenePayload.",
+          description:
+            "Creates a drawing from an explicit Excalidraw ScenePayload.",
           inputSchema: createDrawingInput.shape,
         },
         async (input) => jsonText(tools.create_drawing(input)),
@@ -282,7 +308,8 @@ export function createExcaliMcpHandler(
         "patch_drawing",
         {
           title: "Patch Drawing",
-          description: "Applies RFC 6902 JSON Patch operations to a drawing scene and optionally updates its title.",
+          description:
+            "Applies RFC 6902 JSON Patch operations to a drawing scene and optionally updates its title.",
           inputSchema: patchDrawingInput.shape,
         },
         async (input) => jsonText(tools.patch_drawing(input)),
@@ -304,7 +331,11 @@ export function createExcaliMcpHandler(
 
 export function createMcpServer() {
   const store = createDrawingStore(process.env.DATABASE_PATH);
-  const handler = createExcaliMcpHandler(store, resolvePublicBaseUrl(), resolveStylesGuidePath());
+  const handler = createExcaliMcpHandler(
+    store,
+    resolvePublicBaseUrl(),
+    resolveStylesGuidePath(),
+  );
 
   return {
     port: Number(process.env.MCP_PORT ?? "3001"),
@@ -312,7 +343,10 @@ export function createMcpServer() {
     fetch(request: Request) {
       const url = new URL(request.url);
       if (url.pathname !== "/mcp") {
-        return Response.json({ ok: false, error: "Not found" }, { status: 404 });
+        return Response.json(
+          { ok: false, error: "Not found" },
+          { status: 404 },
+        );
       }
 
       return handler(request);
