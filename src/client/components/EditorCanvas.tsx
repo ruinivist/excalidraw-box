@@ -28,7 +28,7 @@ function sceneFromEditor(
   files: BinaryFiles,
 ): ScenePayload {
   return {
-    // ⚡ Bolt: Excalidraw passes immutable arrays, avoid copying it on every onChange event
+    // Excalidraw passes immutable arrays, avoid copying it on every onChange event
     elements: elements as unknown[],
     appState: appState as unknown as Record<string, unknown>,
     files: files as unknown as Record<string, unknown>,
