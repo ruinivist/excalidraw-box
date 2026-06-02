@@ -1,6 +1,9 @@
 import { memo } from "react";
 import { Excalidraw } from "@excalidraw/excalidraw";
-import type { ExcalidrawInitialDataState } from "@excalidraw/excalidraw/types";
+import type {
+  ExcalidrawInitialDataState,
+  ExcalidrawProps,
+} from "@excalidraw/excalidraw/types";
 import "../../../node_modules/@excalidraw/excalidraw/dist/prod/index.css";
 import { type PublicDrawing } from "../../core/shared";
 
@@ -8,6 +11,7 @@ type PublicViewerProps = {
   drawing: PublicDrawing | null;
   loading: boolean;
   error: string | null;
+  renderEmbeddable?: ExcalidrawProps["renderEmbeddable"];
 };
 
 function drawingToInitialData(
@@ -35,6 +39,7 @@ export const PublicViewer = memo(function PublicViewer({
   drawing,
   loading,
   error,
+  renderEmbeddable,
 }: PublicViewerProps) {
   if (loading || !drawing) {
     return <div className="editor-loading">{error ?? "Loading..."}</div>;
@@ -47,6 +52,7 @@ export const PublicViewer = memo(function PublicViewer({
         viewModeEnabled={true}
         zenModeEnabled={true}
         UIOptions={viewerUiOptions}
+        renderEmbeddable={renderEmbeddable}
       />
     </div>
   );

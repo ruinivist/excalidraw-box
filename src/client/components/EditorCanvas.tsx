@@ -3,10 +3,16 @@ import { Excalidraw } from "@excalidraw/excalidraw";
 import type {
   AppState,
   BinaryFiles,
+  ExcalidrawImperativeAPI,
   ExcalidrawInitialDataState,
+  ExcalidrawProps,
 } from "@excalidraw/excalidraw/types";
 import "../../../node_modules/@excalidraw/excalidraw/dist/prod/index.css";
 import { type ScenePayload } from "../../core/shared";
+import {
+  getCodeBlockSelectionState,
+  type CodeBlockSelectionState,
+} from "../codeblock";
 
 type EditorCanvasProps = {
   activeId: string | null;
@@ -15,7 +21,10 @@ type EditorCanvasProps = {
   error: string | null;
   editorReloadNonce: number;
   onSceneChange: (scene: ScenePayload) => void;
+  onSelectionStateChange: (selection: CodeBlockSelectionState) => void;
   onEditorActivity: () => void;
+  onExcalidrawAPI: (api: ExcalidrawImperativeAPI) => void;
+  renderEmbeddable?: ExcalidrawProps["renderEmbeddable"];
 };
 
 function sceneToInitialData(scene: ScenePayload): ExcalidrawInitialDataState {
@@ -42,7 +51,10 @@ export const EditorCanvas = memo(function EditorCanvas({
   error,
   editorReloadNonce,
   onSceneChange,
+  onSelectionStateChange,
   onEditorActivity,
+  onExcalidrawAPI,
+  renderEmbeddable,
 }: EditorCanvasProps) {
   if (loading || !scene) {
     return <div className="editor-loading">{error ?? "Loading..."}</div>;
@@ -53,9 +65,14 @@ export const EditorCanvas = memo(function EditorCanvas({
       <Excalidraw
         key={`${activeId}:${editorReloadNonce}`}
         initialData={sceneToInitialData(scene)}
+        excalidrawAPI={onExcalidrawAPI}
+        renderEmbeddable={renderEmbeddable}
         onChange={(elements, appState, files) => {
           onEditorActivity();
           onSceneChange(sceneFromEditor(elements, appState, files));
+          onSelectionStateChange(
+            getCodeBlockSelectionState(elements, appState),
+          );
         }}
       />
     </div>
