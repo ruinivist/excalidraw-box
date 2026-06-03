@@ -75,7 +75,14 @@ export function normalizeScene(input: unknown): ScenePayload {
 }
 
 export function parseJsonBody<T = unknown>(text: string): T {
-  if (new TextEncoder().encode(text).byteLength > MAX_SCENE_BYTES) {
+  // Optimization: TextEncoder.encode creates a new Uint8Array and allocates memory for the entire
+  // string, which is slow for large JSON payloads. Buffer.byteLength counts bytes without allocation.
+  const byteLength =
+    typeof Buffer !== "undefined"
+      ? Buffer.byteLength(text)
+      : new TextEncoder().encode(text).byteLength;
+
+  if (byteLength > MAX_SCENE_BYTES) {
     throw new HttpError(413, "Payload too large");
   }
 
