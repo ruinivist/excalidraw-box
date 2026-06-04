@@ -30,20 +30,24 @@ function CodeBlockEditor({
 
   useEffect(() => {
     let cancelled = false;
-    void renderHighlightedCodeBlockHtml(draft.code, draft.language)
-      .then((nextHtml) => {
-        if (!cancelled) {
-          setHtml(nextHtml);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setHtml(null);
-        }
-      });
+
+    const timeoutId = setTimeout(() => {
+      void renderHighlightedCodeBlockHtml(draft.code, draft.language)
+        .then((nextHtml) => {
+          if (!cancelled) {
+            setHtml(nextHtml);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setHtml(null);
+          }
+        });
+    }, 100);
 
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
     };
   }, [draft.code, draft.language]);
 
