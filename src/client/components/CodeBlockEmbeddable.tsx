@@ -1,4 +1,5 @@
 import { memo, useEffect, useState } from "react";
+import DOMPurify from "dompurify";
 import type { ExcalidrawProps } from "@excalidraw/excalidraw/types";
 import type {
   ExcalidrawEmbeddableElement,
@@ -57,7 +58,7 @@ const CodeBlockEmbeddable = memo(function CodeBlockEmbeddable({
       {html ? (
         <div
           className="codeblock-embeddable-html"
-          dangerouslySetInnerHTML={{ __html: html }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }}
         />
       ) : (
         <pre className="codeblock-embeddable-fallback">

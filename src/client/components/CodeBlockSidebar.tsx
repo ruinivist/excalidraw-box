@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import DOMPurify from "dompurify";
 import {
   CODE_BLOCK_LANGUAGES,
   type CodeBlockDraftState,
@@ -75,7 +76,7 @@ function CodeBlockEditor({
         {html ? (
           <div
             className="codeblock-editor-highlight-html"
-            dangerouslySetInnerHTML={{ __html: html }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }}
           />
         ) : (
           <pre className="codeblock-editor-highlight-fallback">
