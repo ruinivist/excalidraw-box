@@ -307,6 +307,10 @@ function PrivateApp() {
     [],
   );
 
+  const handleExcalidrawAPI = useCallback((api: ExcalidrawImperativeAPI) => {
+    excalidrawApiRef.current = api;
+  }, []);
+
   return (
     <div className="app-shell" ref={appShellRef}>
       {toastMessage && (
@@ -332,9 +336,7 @@ function PrivateApp() {
           onSceneChange={handleSceneChange}
           onSelectionStateChange={handleCodeBlockSelectionChange}
           onEditorActivity={scheduleThemeTokenSync}
-          onExcalidrawAPI={(api) => {
-            excalidrawApiRef.current = api;
-          }}
+          onExcalidrawAPI={handleExcalidrawAPI}
           renderEmbeddable={renderCodeBlockEmbeddable}
         />
         <CodeBlockSidebar
@@ -357,12 +359,12 @@ function PrivateApp() {
         onClose={closeSidebar}
         onCreate={handleCreateDrawing}
         onSelect={handleSelectDrawing}
-        onDelete={(drawingId) => void deleteDrawing(drawingId)}
+        onDelete={deleteDrawing}
         onTitleChange={setActiveTitle}
-        onTitleSubmit={() => void submitTitle()}
+        onTitleSubmit={submitTitle}
         onPublicationSlugChange={setPublicationSlug}
-        onPublish={() => void publishPublication()}
-        onDisablePublication={() => void disablePublication()}
+        onPublish={publishPublication}
+        onDisablePublication={disablePublication}
       />
     </div>
   );

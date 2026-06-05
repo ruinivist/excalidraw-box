@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { type DrawingMeta, type DrawingPublication } from "../../core/shared";
 
 type DrawingSidebarProps = {
@@ -9,14 +10,14 @@ type DrawingSidebarProps = {
   publicationSlug: string;
   publicationBusy: boolean;
   onClose: () => void;
-  onCreate: () => void;
-  onSelect: (drawingId: string) => void;
-  onDelete: (drawingId: string) => void;
+  onCreate: () => void | Promise<void>;
+  onSelect: (drawingId: string) => void | Promise<void>;
+  onDelete: (drawingId: string) => void | Promise<void>;
   onTitleChange: (title: string) => void;
-  onTitleSubmit: () => void;
+  onTitleSubmit: () => void | Promise<void>;
   onPublicationSlugChange: (slug: string) => void;
-  onPublish: () => void;
-  onDisablePublication: () => void;
+  onPublish: () => void | Promise<void>;
+  onDisablePublication: () => void | Promise<void>;
 };
 
 function DrawerIcon() {
@@ -64,7 +65,7 @@ export function DrawingsToggle({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function DrawingSidebar({
+export const DrawingSidebar = memo(function DrawingSidebar({
   open,
   drawings,
   activeId,
@@ -133,7 +134,7 @@ export function DrawingSidebar({
                       className="title-input"
                       value={activeTitle}
                       onChange={(event) => onTitleChange(event.target.value)}
-                      onBlur={onTitleSubmit}
+                      onBlur={() => void onTitleSubmit()}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {
                           event.currentTarget.blur();
@@ -143,7 +144,7 @@ export function DrawingSidebar({
                     <button
                       type="button"
                       className="icon-button drawing-delete-button"
-                      onClick={() => onDelete(drawing.id)}
+                      onClick={() => void onDelete(drawing.id)}
                       aria-label={`Delete ${drawing.title}`}
                     >
                       ×
@@ -171,7 +172,7 @@ export function DrawingSidebar({
                       <button
                         type="button"
                         className="secondary-button"
-                        onClick={onPublish}
+                        onClick={() => void onPublish()}
                         disabled={publicationBusy}
                       >
                         {publication.enabled ? "Update link" : "Publish"}
@@ -179,7 +180,7 @@ export function DrawingSidebar({
                       <button
                         type="button"
                         className="secondary-button"
-                        onClick={onDisablePublication}
+                        onClick={() => void onDisablePublication()}
                         disabled={!publication.enabled || publicationBusy}
                       >
                         Unpublish
@@ -205,7 +206,7 @@ export function DrawingSidebar({
                 <button
                   type="button"
                   className="drawing-link"
-                  onClick={() => onSelect(drawing.id)}
+                  onClick={() => void onSelect(drawing.id)}
                 >
                   <span className="drawing-title">{drawing.title}</span>
                 </button>
@@ -214,7 +215,7 @@ export function DrawingSidebar({
                 <button
                   type="button"
                   className="icon-button"
-                  onClick={() => onDelete(drawing.id)}
+                  onClick={() => void onDelete(drawing.id)}
                   aria-label={`Delete ${drawing.title}`}
                 >
                   ×
@@ -226,4 +227,4 @@ export function DrawingSidebar({
       </aside>
     </>
   );
-}
+});
