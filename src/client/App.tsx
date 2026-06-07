@@ -307,6 +307,13 @@ function PrivateApp() {
     [],
   );
 
+  // ⚡ Bolt: Memoize the Excalidraw API callback to prevent EditorCanvas from re-rendering
+  // Excalidraw has exceptionally high rendering cost, so we must maintain prop stability
+  // for EditorCanvas's React.memo to avoid severe UI input lag on any parent state change.
+  const handleExcalidrawAPI = useCallback((api: ExcalidrawImperativeAPI) => {
+    excalidrawApiRef.current = api;
+  }, []);
+
   return (
     <div className="app-shell" ref={appShellRef}>
       {toastMessage && (
@@ -332,9 +339,7 @@ function PrivateApp() {
           onSceneChange={handleSceneChange}
           onSelectionStateChange={handleCodeBlockSelectionChange}
           onEditorActivity={scheduleThemeTokenSync}
-          onExcalidrawAPI={(api) => {
-            excalidrawApiRef.current = api;
-          }}
+          onExcalidrawAPI={handleExcalidrawAPI}
           renderEmbeddable={renderCodeBlockEmbeddable}
         />
         <CodeBlockSidebar
