@@ -231,6 +231,8 @@ export function useDrawingSession() {
           }
           if (isManual) {
             showToast("Saved", 2000);
+          } else {
+            showToast(null);
           }
         })
         .catch((saveError: unknown) => {
@@ -251,6 +253,8 @@ export function useDrawingSession() {
           );
           if (isManual) {
             showToast("Save failed", 2000);
+          } else {
+            showToast("Autosave failed");
           }
           throw saveError;
         })
