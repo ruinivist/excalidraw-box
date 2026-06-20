@@ -12,6 +12,7 @@ export function createServer(options: CreateServerOptions = {}) {
   return {
     port: Number(process.env.PORT ?? "3000"),
     hostname: process.env.HOST ?? "localhost",
+    idleTimeout: 120,
     routes: {
       "/": (request: Request) => {
         const drawing = drawingStore.ensureInitialDrawing();
