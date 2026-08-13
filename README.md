@@ -1,5 +1,8 @@
 # excali-box
 
+> The whole absolute positioning of arbitrary buttons and "patches" onto excalidraw-core was a mess, this is too much of a hack and is
+> still missing the core features I wanted
+
 Private self-hosted Excalidraw with Bun, Caddy, and SQLite.
 
 This is bare wrapper around the excalidraw packages that adds autosave and disk-persistence.
